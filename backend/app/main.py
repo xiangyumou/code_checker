@@ -2,6 +2,7 @@ import logging
 import logging.config # Added for dictConfig
 import os # Added for path joining
 import asyncio # Added for Queue and Task
+import datetime # Added for datetime usage
 from contextlib import asynccontextmanager # Import asynccontextmanager
 from typing import Optional # Added for Optional types
 from fastapi import FastAPI, Request, status
@@ -222,17 +223,12 @@ async def lifespan(app: FastAPI):
                             error_message="System restarted during processing."
                         )
                         logger.debug(f"Request ID: {req.id} status updated in session (pre-commit).")
-                        # Construct data payload for the broadcast
-                        request_data_payload = {
-                            "id": req.id,
-                            "status": RequestStatus.FAILED.value,
-                            "error_message": "System restarted during processing.",
-                            "updated_at": req.updated_at.isoformat() if req.updated_at else datetime.datetime.utcnow().isoformat() # Ensure datetime is serializable, provide current time if None
-                            # Add other fields if the frontend expects them for this type of update
-                        }
                         # Send WebSocket update using the global manager - CORRECTED ARGUMENTS
                         await ws_manager.broadcast_request_updated(
-                            request_data=request_data_payload
+                            request_id=req.id,
+                            status=RequestStatus.FAILED,
+                            updated_at=req.updated_at if req.updated_at else datetime.datetime.utcnow(),
+                            error_message="System restarted during processing."
                         )
                         logger.debug(f"WebSocket update broadcasted for request ID: {req.id}.")
                         updated_count += 1

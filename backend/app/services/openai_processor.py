@@ -22,9 +22,7 @@ from app.crud.crud_setting import crud_setting # To fetch settings
 # Import the global WebSocket manager instance
 from app.websockets.connection_manager import manager as ws_manager # Correct import path
 
-# Configure logging using a basic config for now. Proper config should be done in main.py or via dictConfig.
-logging.basicConfig(level="INFO") # Start with INFO, can be overridden by DB setting later if implemented
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app." + __name__)
 
 # --- Analysis Task Concurrency Control ---
 # Semaphore to limit concurrent analysis tasks. Initialized during app startup.

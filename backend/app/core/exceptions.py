@@ -34,11 +34,8 @@ class NotFoundError(AppException):
 class AuthenticationError(AppException):
     """Exception for authentication failures."""
     def __init__(self, detail: str = "Authentication failed."):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=detail,
-            headers={"WWW-Authenticate": "Bearer"}, # Standard for 401
-        )
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+        self.headers = {"WWW-Authenticate": "Bearer"}  # Standard for 401
 
 class AuthorizationError(AppException):
     """Exception for authorization failures (user authenticated but lacks permission)."""

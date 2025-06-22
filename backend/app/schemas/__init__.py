@@ -9,7 +9,6 @@ from .setting import Setting, SettingCreate, SettingUpdate, SettingList, Setting
 __all__ = [
     "AdminUser", "AdminUserCreate", "AdminUserUpdate", "AdminUserInDBBase",
     "Request", "RequestCreate", "RequestUpdate", "RequestInDBBase", "RequestStatus", "RequestSummary",
-    "AnalysisVersion", "AnalysisVersionCreate", "AnalysisVersionUpdate", "AnalysisVersionInDBBase",
     "Token", "TokenPayload",
     "Setting", "SettingCreate", "SettingUpdate", "SettingList", "SettingsUpdate",
 ]

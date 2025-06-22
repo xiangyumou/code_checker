@@ -1,14 +1,14 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import validator, PostgresDsn # Import validator and potentially PostgresDsn
+from pydantic import field_validator, PostgresDsn # Import field_validator and potentially PostgresDsn
 from functools import lru_cache
 from typing import Optional, Dict, Any # Import necessary types
 
 # Define the base directory for the project relative to this file
 # Assuming config.py is in backend/app/core/
-# BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# More robust way inside Docker: Assume /app is the workdir
-APP_DIR = "/app"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Use /app in Docker, fall back to relative paths for development
+APP_DIR = os.environ.get("APP_DIR", BASE_DIR)
 DATA_DIR = os.path.join(APP_DIR, "data")
 LOGS_DIR = os.path.join(APP_DIR, "logs")
 
@@ -32,11 +32,13 @@ class Settings(BaseSettings):
     # Asynchronous database connection URI
     SQLALCHEMY_DATABASE_URI: Optional[str] = None # Make it optional, validator will build it
 
-    @validator("SQLALCHEMY_DATABASE_URI", pre=True)
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+    @field_validator("SQLALCHEMY_DATABASE_URI", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: Optional[str], info) -> str:
         if isinstance(v, str): # If already set (e.g., explicitly in env), use it
             return v
         # Build the URI from individual components loaded from env vars
+        values = info.data if info else {}
         user = values.get("POSTGRES_USER")
         password = values.get("POSTGRES_PASSWORD")
         server = values.get("POSTGRES_SERVER")
