@@ -1,0 +1,85 @@
+services:
+  backend:
+    build: ./backend
+    container_name: code_checker_backend
+    volumes:
+      # Mount the application code for development hot-reloading
+      - ./backend/app:/app/app
+      # REMOVED SQLite volume mount: - ./data:/app/data
+      # Mount the logs volume for log file persistence
+      - ./logs:/app/logs
+      - uploads:/app/data/uploads
+    # ports:
+    #   - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy # Wait for db to be healthy
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONDONTWRITEBYTECODE: 1
+      # --- PostgreSQL Connection Details (Hardcoded) ---
+      # !!! 请将下面的占位符替换为你的实际数据库凭证 !!!
+      POSTGRES_SERVER: db # Service name of the PostgreSQL container
+      POSTGRES_USER: ${POSTGRES_USER:-defaultuser}
+      POSTGRES_PASSWORD: B1hYC16XRLY56XPShx6w6G9gHemXewriF5dZoQo2jMI3SVSm2xEmXlcjo5Lo6rUI
+      POSTGRES_DB: ${POSTGRES_DB:-defaultdb}
+      SECRET_KEY: ${SECRET_KEY:-fallback-key-change-in-production}
+      MAX_CONCURRENT_ANALYSIS_TASKS: ${MAX_CONCURRENT_ANALYSIS_TASKS:-5}
+      # -------------------------------------------------
+    # REMOVED command here to allow Dockerfile CMD (which includes alembic upgrade) to run
+
+  # Frontend service definition (ports kept)
+  frontend:
+    build: ./frontend
+    container_name: code_checker_frontend
+    volumes:
+      # Mount source code for hot-reloading (Vite handles this)
+      - ./frontend:/app
+      # Use an anonymous volume to prevent host node_modules from overwriting container's
+      - /app/node_modules
+    ports:
+      - "5063:5173" # Map host 5063 to container 5173 (Vite default dev port)
+    depends_on:
+      - backend
+    command: npm run dev # Keep the correct command here
+
+  # Admin frontend service definition (ports kept)
+  admin_frontend:
+    build: ./admin-frontend # Corrected build context path
+    container_name: code_checker_admin_frontend
+    ports:
+      - "5064:5173" # Map host 5064 to Vite default dev port 5173
+    volumes:
+       - ./admin-frontend/src:/app/src # Corrected volume path
+       - ./admin-frontend/public:/app/public # Corrected volume path
+       - /app/node_modules # Use node_modules from within the container
+    environment:
+      NODE_ENV: development # Corrected format: key: value
+    depends_on:
+      - backend
+    command: npm run dev # Added command for admin frontend
+
+  # --- New PostgreSQL service definition ---
+  db:
+    image: postgres:15 # Use a specific version
+    container_name: code_checker_postgres_db
+    environment:
+      # !!! 确保这些值与 backend service 中的环境变量一致 !!!
+      POSTGRES_USER: ${POSTGRES_USER:-defaultuser}
+      POSTGRES_PASSWORD: B1hYC16XRLY56XPShx6w6G9gHemXewriF5dZoQo2jMI3SVSm2xEmXlcjo5Lo6rUI
+      POSTGRES_DB: ${POSTGRES_DB:-defaultdb}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Use named volume for persistence
+    # ports: # <-- 移除端口映射
+    #   - "5432:5432"
+    healthcheck:
+      # Use the actual values defined in environment above
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-defaultuser} -d ${POSTGRES_DB:-defaultdb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# --- Define named volumes ---
+volumes:
+  postgres_data: {} # Define the volume used by the db service
+  uploads: {}

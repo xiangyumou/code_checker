@@ -1,0 +1,19 @@
+# Backend dependencies will be listed here
+fastapi
+uvicorn[standard] # Includes websockets support
+sqlalchemy # Or sqlmodel if preferred later
+passlib[bcrypt]
+python-jose[cryptography]
+openai
+python-multipart
+pydantic-settings # For loading settings from .env files
+python-dotenv # Required for .env file loading support
+aiofiles # For async file operations
+# Add other dependencies like databases drivers (e.g., pysqlite3 or asyncpg), logging config libs etc. as needed
+alembic
+asyncpg>=0.25.0 # PostgreSQL async driver for FastAPI/SQLAlchemy
+psycopg2-binary>=2.9.0 # PostgreSQL sync driver for Alembic
+# Testing dependencies
+pytest
+httpx
+pytest-asyncio # For async test functions
