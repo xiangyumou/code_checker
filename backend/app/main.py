@@ -393,11 +393,6 @@ app.include_router(api_router, prefix=app_settings.API_V1_STR)
 from app.websockets.endpoints import router as ws_router
 app.include_router(ws_router)
 
-# --- Security Middleware ---
-from app.middleware.security import rate_limiting_middleware, security_headers_middleware
-app.middleware("http")(rate_limiting_middleware)
-app.middleware("http")(security_headers_middleware)
-
 # --- Middleware ---
 # Placeholder for initialization check middleware
 # TODO: Implement initialization check middleware if strict enforcement is needed

@@ -189,16 +189,5 @@
     "loadingContent": "Loading log content...",
     "contentPlaceholder": "Log content for {{file}}...",
     "selectFileMessage": "Please select a log file to view."
-  },
-  "statusIndicator": {
-    "processing": "Processing, please wait...",
-    "queued": "Request queued, please wait...",
-    "failed": "Analysis Failed",
-    "failedMessage": "Could not complete analysis. Please check input or try again later."
-  },
-  "common": {
-    "loading": "Loading...",
-    "error": "Error",
-    "success": "Success"
   }
 }

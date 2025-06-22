@@ -7,7 +7,6 @@ python-jose[cryptography]
 openai
 python-multipart
 pydantic-settings # For loading settings from .env files
-python-dotenv # Required for .env file loading support
 aiofiles # For async file operations
 # Add other dependencies like databases drivers (e.g., pysqlite3 or asyncpg), logging config libs etc. as needed
 alembic

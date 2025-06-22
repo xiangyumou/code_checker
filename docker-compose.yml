@@ -20,11 +20,9 @@ services:
       # --- PostgreSQL Connection Details (Hardcoded) ---
       # !!! 请将下面的占位符替换为你的实际数据库凭证 !!!
       POSTGRES_SERVER: db # Service name of the PostgreSQL container
-      POSTGRES_USER: ${POSTGRES_USER:-defaultuser}
+      POSTGRES_USER: ZvOs9djfj2qW416MvS6Sa
       POSTGRES_PASSWORD: B1hYC16XRLY56XPShx6w6G9gHemXewriF5dZoQo2jMI3SVSm2xEmXlcjo5Lo6rUI
-      POSTGRES_DB: ${POSTGRES_DB:-defaultdb}
-      SECRET_KEY: ${SECRET_KEY:-fallback-key-change-in-production}
-      MAX_CONCURRENT_ANALYSIS_TASKS: ${MAX_CONCURRENT_ANALYSIS_TASKS:-5}
+      POSTGRES_DB: BfK2xL8Aex5pfmw4Qshpb
       # -------------------------------------------------
     # REMOVED command here to allow Dockerfile CMD (which includes alembic upgrade) to run
 
@@ -65,16 +63,16 @@ services:
     container_name: code_checker_postgres_db
     environment:
       # !!! 确保这些值与 backend service 中的环境变量一致 !!!
-      POSTGRES_USER: ${POSTGRES_USER:-defaultuser}
+      POSTGRES_USER: ZvOs9djfj2qW416MvS6Sa
       POSTGRES_PASSWORD: B1hYC16XRLY56XPShx6w6G9gHemXewriF5dZoQo2jMI3SVSm2xEmXlcjo5Lo6rUI
-      POSTGRES_DB: ${POSTGRES_DB:-defaultdb}
+      POSTGRES_DB: BfK2xL8Aex5pfmw4Qshpb
     volumes:
       - postgres_data:/var/lib/postgresql/data # Use named volume for persistence
     # ports: # <-- 移除端口映射
     #   - "5432:5432"
     healthcheck:
       # Use the actual values defined in environment above
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-defaultuser} -d ${POSTGRES_DB:-defaultdb}"]
+      test: ["CMD-SHELL", "pg_isready -U ZvOs9djfj2qW416MvS6Sa -d BfK2xL8Aex5pfmw4Qshpb"]
       interval: 10s
       timeout: 5s
       retries: 5

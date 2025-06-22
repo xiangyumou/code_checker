@@ -72,7 +72,7 @@ class Settings(BaseSettings):
 
     # Security settings
     # Generate a secret key using: openssl rand -hex 32
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "fallback-key-change-in-production-b4f8a3e9c2d1")
+    SECRET_KEY: str = "YOUR_SECRET_KEY_HERE" # CHANGE THIS! Load from env or secrets management
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8 # 8 days for admin token
 
@@ -81,8 +81,8 @@ class Settings(BaseSettings):
 
     # Use model_config for Pydantic V2 compatibility
     model_config = SettingsConfigDict(
-        env_file=".env",  # Enable .env file loading
-        env_file_encoding='utf-8',
+        # If using a .env file, uncomment below
+        # env_file = ".env",
         case_sensitive=True,
         extra='ignore' # Ignore extra fields from env vars if needed
     )

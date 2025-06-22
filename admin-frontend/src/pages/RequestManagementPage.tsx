@@ -72,7 +72,7 @@ const RequestManagementPage: React.FC<RequestManagementPageProps> = ({
         newSorter: SorterResult<RequestSummary> | SorterResult<RequestSummary>[] // Changed type to RequestSummary
     ) => {
         const singleSorter = Array.isArray(newSorter) ? newSorter[0] : newSorter; // Type assertion might be needed if TS complains
-        // Update local state for immediate UI feedback
+        console.log("Table Change - Updating local state:", newPagination, newFilters, singleSorter);
         // Update local state for immediate UI feedback
         setPagination(newPagination);
         setFilters(newFilters);
@@ -258,7 +258,7 @@ const RequestManagementPage: React.FC<RequestManagementPageProps> = ({
                         okText={t('confirm')} // Use same key
                         cancelText={t('cancel')} // Use same key
                     >
-                        <Button type="primary" danger disabled={!hasSelected || loading} loading={false}>
+                        <Button type="primary" danger disabled={!hasSelected || loading} loading={loading && false /* Consider separate loading state for batch actions */}>
                             {t('deleteSelected')} {/* Define new key */}
                         </Button>
                     </Popconfirm>
@@ -270,7 +270,7 @@ const RequestManagementPage: React.FC<RequestManagementPageProps> = ({
                         okText={t('confirm')} // Use same key
                         cancelText={t('cancel')} // Use same key
                     >
-                        <Button type="default" disabled={!hasSelected || loading} loading={false}>
+                        <Button type="default" disabled={!hasSelected || loading} loading={loading && false /* Consider separate loading state */}>
                             {t('retrySelected')} {/* Define new key */}
                         </Button>
                     </Popconfirm>

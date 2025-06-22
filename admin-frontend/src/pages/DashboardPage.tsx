@@ -1,9 +1,8 @@
-import React, { useMemo } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { Card, Typography, Row, Col, Statistic, Spin } from 'antd';
-import { DatabaseOutlined, SyncOutlined, CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
-import { AnalysisRequest } from '../types';
+import React, { useMemo } from 'react'; // Added useMemo
+import { useOutletContext } from 'react-router-dom'; // Import useOutletContext
+import { Card, Typography, Row, Col, Statistic, Spin } from 'antd'; // Added Spin
+import { DatabaseOutlined, SyncOutlined, CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons'; // Added CheckCircleOutlined
+import { AnalysisRequest } from '../types'; // Import type
 
 const { Title } = Typography;
 
@@ -16,7 +15,6 @@ interface DashboardContext {
 
 
 const DashboardPage: React.FC = () => {
-  const { t } = useTranslation();
   const context = useOutletContext<DashboardContext>();
 
   // Calculate stats based on the requests from context
@@ -36,14 +34,14 @@ const DashboardPage: React.FC = () => {
   if (!context || context.loadingRequests) {
       return (
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
-              <Spin tip={t('common.loading')} size="large" />
+              <Spin tip="加载数据中..." size="large" />
           </div>
       );
   }
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: '24px' }}>{t('dashboard')}</Title>
+      <Title level={2} style={{ marginBottom: '24px' }}>仪表盘</Title>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card hoverable> {/* Added hoverable */}

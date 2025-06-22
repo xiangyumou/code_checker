@@ -1,7 +1,6 @@
 import React, { useContext } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { Spin, Layout } from 'antd';
-import { useTranslation } from 'react-i18next';
+import { Spin, Layout } from 'antd'; // Import Spin and Layout for loading state
 
 // Import Layout and Pages
 import MainLayout from './layouts/MainLayout';
@@ -18,14 +17,13 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 // --- Protected Route Component ---
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  const { t } = useTranslation();
   const location = useLocation();
 
   if (loading) {
     // Show a loading indicator while checking auth status
     return (
       <Layout style={{ minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <Spin size="large" tip={t('common.loading') || 'Loading authentication...'} />
+        <Spin size="large" tip="正在加载认证信息..." />
       </Layout>
     );
   }

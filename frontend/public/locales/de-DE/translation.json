@@ -188,11 +188,5 @@
   },
   "common": {
       "close": "Schließen"
-  },
-  "statusIndicator": {
-    "processing": "Verarbeitung läuft, bitte warten...",
-    "queued": "Anfrage in Warteschlange, wird verarbeitet...",
-    "failed": "Analyse fehlgeschlagen",
-    "failedMessage": "Die Analyse konnte nicht abgeschlossen werden. Bitte überprüfen Sie Ihre Eingabe oder versuchen Sie es später erneut."
   }
 }

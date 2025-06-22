@@ -188,11 +188,5 @@
   },
   "common": {
       "close": "关闭"
-  },
-  "statusIndicator": {
-    "processing": "正在处理中，请稍候...",
-    "queued": "请求已加入队列，等待处理...",
-    "failed": "分析失败",
-    "failedMessage": "无法完成分析，请检查输入或稍后重试。"
   }
 }

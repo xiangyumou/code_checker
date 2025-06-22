@@ -188,11 +188,5 @@
   },
   "common": {
       "close": "Close"
-  },
-  "statusIndicator": {
-    "processing": "Processing, please wait...",
-    "queued": "Request queued, waiting for processing...",
-    "failed": "Analysis Failed",
-    "failedMessage": "Unable to complete analysis. Please check your input or try again later."
   }
 }

@@ -42,43 +42,19 @@ class RequestService:
         # self.crud_request = crud.crud_request
 
     async def _save_uploaded_image(self, image: UploadFile, destination_dir: Path) -> str:
-        """Saves a single uploaded image to the destination directory with security checks."""
+        """Saves a single uploaded image to the destination directory."""
         try:
-            # Validate file size (10MB limit)
-            MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-            content_length = 0
-            
-            # Validate MIME type
-            ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
-            if hasattr(image, 'content_type') and image.content_type not in ALLOWED_MIME_TYPES:
-                raise ValueError(f"Invalid file type: {image.content_type}. Only images are allowed.")
-            
-            # Validate file extension
-            if not image.filename:
-                raise ValueError("Filename is required")
-            
-            file_extension = Path(image.filename).suffix.lower()
-            ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-            if file_extension not in ALLOWED_EXTENSIONS:
-                raise ValueError(f"Invalid file extension: {file_extension}")
-            
             # Create a unique filename to avoid collisions
+            file_extension = Path(image.filename).suffix
             unique_filename = f"{uuid.uuid4()}{file_extension}"
             destination_path = destination_dir / unique_filename
 
             # Ensure the directory exists
             destination_dir.mkdir(parents=True, exist_ok=True)
 
-            # Asynchronously write the file content with size validation
+            # Asynchronously write the file content
             async with aiofiles.open(destination_path, 'wb') as out_file:
                 while content := await image.read(1024 * 1024):  # Read in 1MB chunks
-                    content_length += len(content)
-                    if content_length > MAX_FILE_SIZE:
-                        # Clean up partially written file
-                        await out_file.close()
-                        if destination_path.exists():
-                            os.remove(destination_path)
-                        raise ValueError(f"File too large. Maximum size is {MAX_FILE_SIZE // (1024*1024)}MB")
                     await out_file.write(content)
 
             # Return the relative path for storage in the database
@@ -321,18 +297,10 @@ class RequestService:
                     full_image_path = (base_data_path / safe_image_ref).resolve()
                     logger.debug(f"Attempting to read image for request {request_id}. Reference: '{image_ref}', Resolved Path: '{full_image_path}'")
 
-                    # Enhanced security check: Ensure the resolved path is within data directory
-                    # and doesn't contain suspicious patterns
-                    resolved_base = base_data_path.resolve()
-                    resolved_image = full_image_path.resolve()
-                    
-                    if not str(resolved_image).startswith(str(resolved_base)):
-                        logger.error(f"Path traversal attempt detected for image path: {image_ref} (Resolved: {resolved_image}) in request {request_id}")
-                        continue
-                    
-                    # Additional checks for suspicious path components
-                    if any(part in image_ref for part in ["..", "~", "//", "%2e", "%2f"]):
-                        logger.error(f"Suspicious path pattern detected in image reference: {image_ref} for request {request_id}")
+                    # Security check: Ensure the resolved path is still within the intended data directory
+                    if not str(full_image_path).startswith(str(base_data_path.resolve())):
+                        logger.error(f"Attempted path traversal detected for image path: {image_ref} (Resolved: {full_image_path}) in request {request_id}")
+                        # Skip this image, log error, continue with others
                         continue
 
                     # Use asyncio.to_thread for synchronous os.path.exists check

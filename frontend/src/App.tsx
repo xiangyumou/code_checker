@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
 import { useTranslation } from 'react-i18next'; // Import useTranslation
-import { Layout, theme, Typography, message, Spin, Row, Col, Space } from 'antd';
+// Added Tag and icons for WebSocket status
+// Import Row and Col for responsive grid layout
+import { Layout, theme, Typography, message, Spin, Tag, Tooltip, Row, Col, Space } from 'antd'; // Added Row, Col, Space
+import { WifiOutlined, LoadingOutlined, WarningOutlined, ApiOutlined } from '@ant-design/icons';
 // Removed ResizableBox and CSS imports
 // Removed App.css import
 
@@ -23,7 +26,7 @@ import InitializationPage from './components/InitializationPage'; // Import Init
 import ThemeSwitcher from './components/ThemeSwitcher'; // Import ThemeSwitcher
 import LanguageSwitcher from './components/LanguageSwitcher'; // Import LanguageSwitcher
 
-// Define WebSocket status type for internal use only
+// Define WebSocket status type
 type WebSocketConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 function App() {
@@ -440,10 +443,27 @@ function App() {
       {/* Global Header */}
       <Header style={{ padding: '0 16px', background: colorBgContainer, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 /* Prevent header shrinking */ }}>
          <Title level={3} style={{ margin: 0, flexGrow: 1, textAlign: 'center', color: '#fff' /* Assuming default dark header */ }}>{t('app.title')}</Title> {/* Define new key */}
-         {/* Right side controls: Language Switcher and Theme Switcher */}
+         {/* Right side controls: Language Switcher, Theme Switcher and WebSocket Status */}
          <Space>
-             <LanguageSwitcher />
-             <ThemeSwitcher />
+             <LanguageSwitcher /> {/* Add the language switcher */}
+             <ThemeSwitcher /> {/* Add the theme switcher */}
+             {/* Use t() for Tooltip title and Tag content */}
+             <Tooltip title={t('app.websocketStatusTooltip', { status: wsStatus })}> {/* Define new key */}
+                  <Tag icon={
+                      wsStatus === 'connected' ? <WifiOutlined /> :
+                      wsStatus === 'connecting' ? <LoadingOutlined spin /> :
+                      wsStatus === 'error' ? <WarningOutlined /> :
+                      <ApiOutlined /> // disconnected
+                  } color={
+                      wsStatus === 'connected' ? 'success' :
+                      wsStatus === 'connecting' ? 'processing' :
+                      wsStatus === 'error' ? 'error' :
+                      'default' // disconnected
+                  }>
+                      {t(`app.websocketStatus.${wsStatus}`)} {/* Define nested keys */}
+                  </Tag>
+             </Tooltip>
+             {/* ThemeSwitcher moved next to LanguageSwitcher */}
          </Space>
       </Header>
 

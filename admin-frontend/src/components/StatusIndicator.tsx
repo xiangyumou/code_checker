@@ -1,10 +1,6 @@
 import React from 'react';
-import { Spin, Result, theme, Typography } from 'antd';
-import { LoadingOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
-
-const { useToken } = theme;
-const { Paragraph } = Typography;
+import { Spin, Result } from 'antd';
+import { LoadingOutlined, CloseCircleOutlined } from '@ant-design/icons';
 
 interface StatusIndicatorProps {
   status: 'processing' | 'failed' | 'queued'; // Add 'queued' status
@@ -12,54 +8,37 @@ interface StatusIndicatorProps {
 }
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, message }) => {
-  const { token } = useToken();
-  const { t } = useTranslation();
-
-  const wrapperStyle: React.CSSProperties = {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '200px',
-    padding: '20px',
-    textAlign: 'center',
-    background: token.colorBgContainerDisabled,
-    borderRadius: token.borderRadiusLG,
-  };
   if (status === 'processing') {
     return (
-      <div style={wrapperStyle}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
         <Spin
-          indicator={<LoadingOutlined style={{ fontSize: 36, color: token.colorPrimary }} spin />}
+          indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />}
+          tip="Processing, please wait..." // English for Admin
           size="large"
         />
-        <Paragraph style={{ marginTop: '16px', color: token.colorTextSecondary }}>
-          {message || t('statusIndicator.processing')}
-        </Paragraph>
       </div>
     );
   }
 
   if (status === 'queued') {
     return (
-      <div style={wrapperStyle}>
-        <ClockCircleOutlined style={{ fontSize: 36, color: token.colorTextSecondary, marginBottom: '16px' }} />
-        <Paragraph style={{ color: token.colorTextSecondary }}>
-          {message || t('statusIndicator.queued')}
-        </Paragraph>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <Spin
+          tip="Request queued, please wait..." // English for Admin
+          size="large"
+        />
       </div>
     );
   }
 
   if (status === 'failed') {
     return (
-      <div style={wrapperStyle}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px', padding: '20px' }}>
         <Result
           status="error"
-          icon={<CloseCircleOutlined style={{ fontSize: 36 }} />}
-          title={<span style={{ color: token.colorError }}>{t('statusIndicator.failed')}</span>}
-          subTitle={<Paragraph type="secondary">{message || t('statusIndicator.failedMessage')}</Paragraph>}
-          style={{ padding: 0 }}
+          icon={<CloseCircleOutlined style={{ fontSize: 48 }} />}
+          title="Analysis Failed" // English for Admin
+          subTitle={message || 'Could not complete analysis. Please check input or try again later.'} // English for Admin
         />
       </div>
     );
