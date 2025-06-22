@@ -8,18 +8,16 @@ WORKDIR /app
 # 复制 package.json 和锁文件 (package-lock.json 或 yarn.lock)
 # 先复制这些文件以利用 Docker 的依赖缓存层
 COPY package*.json ./
-# 如果使用 yarn，请取消注释下一行并注释掉上一行
-# COPY package.json yarn.lock ./
-
-# 安装项目依赖
-# 在 CI/CD 或 Docker 中使用 'npm ci' 进行更纯净的安装 (需要 package-lock.json)
-RUN npm ci
-# 如果使用 yarn，请取消注释下一行并注释掉上一行
-# RUN yarn install --frozen-lockfile
 
 # 复制应用程序的其余代码
 # 注意：确保在项目根目录有一个 .dockerignore 文件来排除 node_modules, .git 等
 COPY . .
+
+# 安装项目依赖
+# Note: npm ci is run after copying files so it can find the shared library
+RUN npm install
+# 如果使用 yarn，请取消注释下一行并注释掉上一行
+# RUN yarn install --frozen-lockfile
 
 # (可选) 为生产环境构建应用
 # 如果您只需要开发服务器，可以跳过此步骤

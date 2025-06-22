@@ -1,0 +1,25 @@
+{
+  "name": "@code-checker/shared",
+  "version": "1.0.0",
+  "description": "Shared communication library for code-checker frontends",
+  "main": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "peerDependencies": {
+    "axios": "^1.6.0",
+    "antd": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    }
+  }
+}

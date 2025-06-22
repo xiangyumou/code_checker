@@ -8,13 +8,14 @@ WORKDIR /app
 # Copying these first leverages Docker cache if dependencies haven't changed
 COPY package*.json ./
 
-# Install project dependencies
-RUN npm install
-
 # Copy the rest of the application code into the container
 # This will be overwritten by the volume mount in docker-compose for development,
 # but is useful if you build the image without volumes later.
 COPY . .
+
+# Install project dependencies
+# Note: npm install is run after copying files so it can find the shared library
+RUN npm install
 
 # Vite's default development port
 EXPOSE 5173

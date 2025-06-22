@@ -11,10 +11,9 @@ import { v4 as uuidv4 } from 'uuid'; // Import uuid
 // import './MainLayout.css'; // Or keep using App.css if styles are general
 
 // Import API functions and types
-import { getAdminAnalysisRequests, getAdminAnalysisRequestDetails } from '../api/adminRequests'; // Added getAdminAnalysisRequestDetails
-// Use AnalysisRequest type, define specific WebSocket message type below
-// Adjust path relative to layouts directory
-import { AnalysisRequest, RequestStatus, RequestSummary } from '../types'; // Corrected import path, added RequestSummary
+import { getAdminAnalysisRequests, getAdminAnalysisRequestDetails } from '../api/adminRequests';
+import { useWebSocket } from '../lib/communication';
+import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../shared/src/types/index';
 
 // Import page components (adjust paths relative to layouts directory)
 import SettingsPage from '../pages/SettingsPage';
@@ -85,176 +84,132 @@ const MainLayout: React.FC = () => {
     }, []); // Empty dependency array for now
     // *** End Lifted fetchData Function ***
 
-    // *** WebSocket Logic (Moved here) ***
-    const wsRef = useRef<WebSocket | null>(null);
+    // *** WebSocket Logic (Using unified manager) ***
+    const webSocketHook = useWebSocket;
+    const wsConnectedRef = useRef(false);
 
     useEffect(() => {
+        if (wsConnectedRef.current) {
+            return; // Already connected
+        }
 
-        const connectWebSocket = () => {
-          if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
-              return;
-          }
+        // Set up event handlers using the unified manager
+        const cleanupHandlers = [
+            webSocketHook.on('connection_established', () => {
+                console.log('[Admin MainLayout] WebSocket connected');
+                message.success('Admin: Real-time status updates connected.');
+                wsConnectedRef.current = true;
+            }),
+            
+            webSocketHook.on('connection_lost', () => {
+                console.log('[Admin MainLayout] WebSocket disconnected');
+                wsConnectedRef.current = false;
+            }),
 
-          // Generate unique client ID using uuid
-          const clientId = `admin-${uuidv4()}`;
-          const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          // Assuming the backend endpoint remains /ws/status/{client_id}
-          const wsUrl = `${wsProtocol}//${window.location.host}/ws/status/${clientId}`;
-
-          const ws = new WebSocket(wsUrl);
-
-          ws.onopen = () => {
-            message.success('Admin: Real-time status updates connected.');
-          };
-
-          // Define more specific WebSocket message structures
-          interface WebSocketCreatedPayload extends RequestSummary {}
-          interface WebSocketUpdatedPayload extends Partial<RequestSummary> { // Backend might only send updated fields + id
-            id: number;
-          }
-          interface WebSocketDeletedPayload {
-            id: number; // Assuming backend sends 'id' for consistency with other events
-          }
-          interface WebSocketMessage {
-            type: 'request_created' | 'request_updated' | 'request_deleted';
-            payload: WebSocketCreatedPayload | WebSocketUpdatedPayload | WebSocketDeletedPayload;
-          }
-
-          ws.onmessage = (event) => {
-            try {
-              const messageData: WebSocketMessage = JSON.parse(event.data);
-
-              // Process message and update state outside the setRequests callback
-              switch (messageData.type) {
-                case 'request_created': {
-                  const createdPayload = messageData.payload as WebSocketCreatedPayload;
-                  setRequests((prevRequests: RequestSummary[]) => {
+            webSocketHook.on('request_created', (event) => {
+                const payload = event.payload as RequestSummary;
+                console.log('[Admin MainLayout] Request created:', payload);
+                setRequests((prevRequests: RequestSummary[]) => {
                     // Avoid adding duplicates
-                    if (prevRequests.some((req: RequestSummary) => req.id === createdPayload.id)) {
-                      console.warn(`[Admin WS] Request ${createdPayload.id} already exists, likely due to race condition. Updating instead.`);
-                      return prevRequests.map((req: RequestSummary) =>
-                        req.id === createdPayload.id ? createdPayload : req
-                      );
+                    if (prevRequests.some((req: RequestSummary) => req.id === payload.id)) {
+                        console.warn(`[Admin WS] Request ${payload.id} already exists, likely due to race condition. Updating instead.`);
+                        return prevRequests.map((req: RequestSummary) =>
+                            req.id === payload.id ? payload : req
+                        );
                     }
-                    // Add the new request summary
-                    return [createdPayload, ...prevRequests];
-                  });
-                  break;
-                }
-                case 'request_updated': {
-                  const updatedPayload = messageData.payload as WebSocketUpdatedPayload;
+                    // Add the new request summary at the beginning
+                    return [payload, ...prevRequests];
+                });
+            }),
 
-                  // *** DEBUG LOGGING AND REF USAGE START ***
-                  const currentSelectedDetails = selectedRequestDetailsRef.current; // Get current value from ref
+            webSocketHook.on('request_updated', (event) => {
+                const payload = event.payload as Partial<RequestSummary> & { id: number };
+                console.log('[Admin MainLayout] Request updated:', payload);
+                
+                // Get current selected details from ref for accurate comparison
+                const currentSelectedDetails = selectedRequestDetailsRef.current;
 
-                  // Modify the condition to use the ref's value
-                  if (currentSelectedDetails && String(currentSelectedDetails.id) === String(updatedPayload.id)) {
-
+                // If the updated request is currently selected in detail view, update it
+                if (currentSelectedDetails && currentSelectedDetails.id === payload.id) {
                     // --- Immediate Partial Update ---
                     setSelectedRequestDetails((prevDetails: AnalysisRequest | null) => {
-                      // Ensure we have previous details and the ID matches before merging
-                      // Note: Using prevDetails here is fine as it's the state setter's argument
-                      if (prevDetails && prevDetails.id === updatedPayload.id) {
-                        return { ...prevDetails, ...updatedPayload };
-                      }
-                      return { ...updatedPayload } as AnalysisRequest;
+                        if (prevDetails && prevDetails.id === payload.id) {
+                            return { ...prevDetails, ...payload };
+                        }
+                        return prevDetails;
                     });
                     // --- End Immediate Partial Update ---
 
                     // --- Asynchronous Full Refetch ---
-                    getAdminAnalysisRequestDetails(updatedPayload.id)
-                      .then(fullDetails => {
-                        // Update with the complete details from API
-                        setSelectedRequestDetails(fullDetails);
-                        // Update cache with full details
-                        setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => ({ ...prev, [updatedPayload.id]: fullDetails }));
-                      })
-                      .catch((error: Error) => {
-                        console.error(`[Admin WS] Error refetching FULL details for request ${updatedPayload.id} after update:`, error);
-                        message.error(`Failed to refresh full details for request #${updatedPayload.id} after update.`);
-                        // Keep the partially updated state in case of full fetch error
-                      });
+                    getAdminAnalysisRequestDetails(payload.id)
+                        .then(fullDetails => {
+                            // Update with the complete details from API
+                            setSelectedRequestDetails(fullDetails);
+                            // Update cache with full details
+                            setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => ({ 
+                                ...prev, 
+                                [payload.id]: fullDetails 
+                            }));
+                        })
+                        .catch((error: Error) => {
+                            console.error(`[Admin WS] Error refetching FULL details for request ${payload.id} after update:`, error);
+                            message.error(`Failed to refresh full details for request #${payload.id} after update.`);
+                            // Keep the partially updated state in case of full fetch error
+                        });
                     // --- End Asynchronous Full Refetch ---
-                  } else {
-                      // Optional: Log if the condition was false but the drawer ID matched (for extra debugging)
-                      // if (detailDrawerRequestId === updatedPayload.id) {
-                      //     console.log(`[ADMIN DEBUG] Condition FALSE, but detailDrawerRequestId (${detailDrawerRequestId}) matched updatedPayload.id (${updatedPayload.id}). Ref value was:`, currentSelectedDetails);
-                      // }
-                  }
-                  // *** DEBUG LOGGING AND REF USAGE END ***
+                }
 
-                  // Update the summary in the list (this part remains unchanged)
-                  setRequests((prevRequests: RequestSummary[]) =>
+                // Update the summary in the list
+                setRequests((prevRequests: RequestSummary[]) =>
                     prevRequests.map((req: RequestSummary) =>
-                      req.id === updatedPayload.id
-                        ? { ...req, ...updatedPayload } // Spread partial update onto existing summary
-                        : req
+                        req.id === payload.id
+                            ? { ...req, ...payload } // Spread partial update onto existing summary
+                            : req
                     )
-                  );
-                  break;
-                }
-                case 'request_deleted': {
-                  const deletedPayload = messageData.payload as WebSocketDeletedPayload;
-                  const deletedId = deletedPayload.id;
+                );
+            }),
 
-                  // Check if the deleted request's detail drawer is currently open (Side effect)
-                  if (detailDrawerRequestId === deletedId) {
+            webSocketHook.on('request_deleted', (event) => {
+                const payload = event.payload as { id: number };
+                console.log('[Admin MainLayout] Request deleted:', payload);
+                const deletedId = payload.id;
+
+                // Check if the deleted request's detail drawer is currently open
+                if (detailDrawerRequestId === deletedId) {
                     handleCloseRequestDetails();
-                  }
-                  // Also reset the older state variable if it matches
-                  if (deletedRequestIdForDetailView === deletedId) {
-                       setDeletedRequestIdForDetailView(null);
-                  }
-
-                  // Filter out the deleted request from the main list
-                  setRequests((prevRequests: RequestSummary[]) =>
-                    prevRequests.filter((req: RequestSummary) => req.id !== deletedId)
-                  );
-                  break;
                 }
-                default:
-                  console.warn('[Admin WS Event - MainLayout] Received WebSocket message of unknown type:', messageData.type);
-              }
+                // Also reset the older state variable if it matches
+                if (deletedRequestIdForDetailView === deletedId) {
+                    setDeletedRequestIdForDetailView(null);
+                }
 
-            } catch (error) {
-              console.error('[Admin WS Event - MainLayout] Failed to parse WebSocket message or update state:', error);
-            }
-          };
+                // Filter out the deleted request from the main list
+                setRequests((prevRequests: RequestSummary[]) =>
+                    prevRequests.filter((req: RequestSummary) => req.id !== deletedId)
+                );
 
-          ws.onerror = (event) => {
-            console.error(`[Admin WS Event - MainLayout] onerror fired for ${clientId}:`, event);
-            message.error('Admin: WebSocket connection error. Status updates may be unavailable.');
-          };
+                // Remove from cache if exists
+                setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => {
+                    const newCache = { ...prev };
+                    delete newCache[deletedId];
+                    return newCache;
+                });
+            })
+        ];
 
-          ws.onclose = (event) => {
-            if (wsRef.current === ws) {
-                wsRef.current = null;
-            } else {
-            }
-            // Optional: Reconnect logic
-            // if (!event.wasClean) {
-            //    console.log('[Admin WS Effect - MainLayout] Connection closed unexpectedly. Attempting reconnect in 5s...');
-            //    setTimeout(connectWebSocket, 5000);
-            // }
-          };
-          wsRef.current = ws;
-        };
+        // Connect to WebSocket
+        webSocketHook.connect();
 
-        connectWebSocket();
-
+        // Cleanup function
         return () => {
-          const wsToClose = wsRef.current;
-          if (wsToClose) {
-            wsToClose.onopen = null;
-            wsToClose.onmessage = null;
-            wsToClose.onerror = null;
-            wsToClose.onclose = null;
-            wsToClose.close(1000, "MainLayout unmounting");
-            wsRef.current = null;
-          } else {
-          }
+            console.log('[Admin MainLayout] Cleaning up WebSocket handlers');
+            // Call all cleanup handlers to remove event listeners
+            cleanupHandlers.forEach(cleanup => cleanup());
+            // Disconnect from WebSocket
+            webSocketHook.disconnect();
+            wsConnectedRef.current = false;
         };
-      }, []); // Empty dependency array: connect only once when MainLayout mounts
+    }, [webSocketHook, detailDrawerRequestId, deletedRequestIdForDetailView, handleCloseRequestDetails]); // Dependencies needed for the handlers
     // *** End WebSocket Logic ***
 
     // Fetch initial data when MainLayout mounts

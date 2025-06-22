@@ -8,10 +8,10 @@ import { WifiOutlined, LoadingOutlined, WarningOutlined, ApiOutlined } from '@an
 // Removed ResizableBox and CSS imports
 // Removed App.css import
 
-// Import API functions
-// Import getAnalysisRequestDetails as well
+// Import API functions and communication setup
 import { getAnalysisRequests, getAnalysisRequestDetails } from './api/requests';
-import { checkInitializationStatus } from './api/initialize'; // Import initialization API
+import { checkInitializationStatus } from './api/initialize';
+import { useWebSocket } from './lib/communication';
 
 const { Header, Content, Footer } = Layout; // Removed Sider import
 const { Title } = Typography;
@@ -19,8 +19,8 @@ const { Title } = Typography;
 // Import components
 import SubmissionForm from './components/SubmissionForm';
 import RequestList from './components/RequestList';
-// Use AnalysisRequest and RequestSummary types
-import { AnalysisRequest, RequestSummary } from './types';
+// Use AnalysisRequest and RequestSummary types from shared library
+import type { AnalysisRequest, RequestSummary } from '../../shared/src/types/index';
 import RequestDetailDrawer from './components/RequestDetailDrawer'; // Import the new Drawer component
 import InitializationPage from './components/InitializationPage'; // Import InitializationPage
 import ThemeSwitcher from './components/ThemeSwitcher'; // Import ThemeSwitcher
@@ -165,235 +165,138 @@ function App() {
       message.success(t('app.regenerationSuccess', { id: newRequest.id })); // Define new key
   };
 
-  // --- WebSocket Logic ---
-  const wsRef = useRef<WebSocket | null>(null); // Ref to hold WebSocket instance
+  // --- WebSocket Logic (Updated to use unified manager) ---
+  const webSocketHook = useWebSocket;
+  const wsConnectedRef = useRef(false);
 
   useEffect(() => {
-    // console.log(`[WebSocket Effect] Running effect. isInitialized: ${isInitialized}`); // Removed log
-
     // Only connect WebSocket if initialized
     if (isInitialized !== true) {
-        // console.log('[WebSocket Effect] Not initialized, cleaning up potential existing connection.'); // Removed log
-        // Cleanup potentially existing connection if status changes back to uninitialized/error
-        if (wsRef.current) {
-            // console.log('[WebSocket Effect] Closing WebSocket due to initialization status change.'); // Removed log
-            wsRef.current.close();
-            wsRef.current = null;
+        // Cleanup connection if status changes back to uninitialized
+        if (wsConnectedRef.current) {
+            webSocketHook.disconnect();
+            wsConnectedRef.current = false;
         }
         return;
     }
 
-    // Function to establish WebSocket connection
+    // Function to establish WebSocket connection using unified manager
     const connectWebSocket = () => {
-      // console.log('[WebSocket Effect] connectWebSocket called.'); // Removed log
-      // Avoid reconnecting if already connected
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          // console.log("[WebSocket Effect] WebSocket already connected and open. Skipping."); // Removed log
-          return;
+      if (wsConnectedRef.current) {
+        return; // Already connected
       }
-      if (wsRef.current && wsRef.current.readyState === WebSocket.CONNECTING) {
-          // console.log("[WebSocket Effect] WebSocket already connecting. Skipping."); // Removed log
-          return;
-      }
+      
+      // Set up event handlers
+      const cleanupHandlers = [
+        webSocketHook.on('connection_established', () => {
+          setWsStatus('connected');
+          wsConnectedRef.current = true;
+        }),
+        
+        webSocketHook.on('connection_lost', () => {
+          setWsStatus('disconnected');
+          wsConnectedRef.current = false;
+        }),
+        
+        webSocketHook.on('error', () => {
+          setWsStatus('error');
+        }),
 
-
-      // Generate unique client ID using uuid
-      const clientId = `frontend-${uuidv4()}`;
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      // Assuming the backend endpoint remains /ws/status/{client_id}
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws/status/${clientId}`;
-      // console.log("[WebSocket Effect] Attempting to connect WebSocket:", wsUrl); // Removed log
-
-      const ws = new WebSocket(wsUrl);
-      // console.log(`[WebSocket Effect] New WebSocket instance created for ${clientId}.`); // Removed log
-
-      // Assign listeners immediately after creation
-      // console.log(`[WebSocket Effect] Assigning onopen listener for ${clientId}...`); // Removed log
-      ws.onopen = () => {
-        // console.log(`[WebSocket Event] onopen fired for ${clientId}`); // Removed log
-        // message.success('Real-time status updates connected.'); // Replaced with status indicator
-        setWsStatus('connected'); // Update status state
-      };
-
-      // Define expected message structure
-      interface WebSocketMessage {
-        type: 'request_created' | 'request_updated' | 'request_deleted';
-        payload: any; // Use 'any' for now, refine if needed based on backend schema
-      }
-
-      // console.log(`[WebSocket Effect] Assigning onmessage listener for ${clientId}...`); // Removed log
-      ws.onmessage = (event) => {
-        // console.log(`>>> ONMESSAGE HANDLER FIRED for ${clientId}! Raw data:`, event.data); // Removed log
-        try {
-          const messageData: WebSocketMessage = JSON.parse(event.data);
-          // console.log('[WebSocket Event] Parsed WebSocket message data:', messageData); // Removed log
-
-          // Update requests list
-          // Update requests list (now analysisRequests)
-          setAnalysisRequests((prevRequests: RequestSummary[]) => { // Add type annotation and correct setter name
-            switch (messageData.type) {
-              case 'request_created':
-                // console.log(`[Frontend WS] Received request_created: ID ${messageData.payload.id}`); // Removed log
-                // Payload should be RequestSummary
-                const newRequestSummary = messageData.payload as RequestSummary;
-                // Avoid adding duplicates
-                if (prevRequests.some((req: RequestSummary) => req.id === newRequestSummary.id)) { // Add type annotation
-                    console.warn(`[Frontend WS] Request ${newRequestSummary.id} already exists. Updating.`);
-                    // Update existing summary if needed (though create usually implies new)
-                    return prevRequests.map((req: RequestSummary) => // Add type annotation
-                        req.id === newRequestSummary.id ? newRequestSummary : req
-                    );
-                }
-                return [newRequestSummary, ...prevRequests]; // Add the new summary
-
-              case 'request_updated':
-                 // console.log(`[Frontend WS] Received request_updated: ID ${messageData.payload.id}`); // Removed log
-                 // Payload should be RequestSummary (or partial summary for update)
-                 const updatedSummary = messageData.payload as Partial<RequestSummary> & { id: number }; // Use partial for update
-                 return prevRequests.map((req: RequestSummary) => // Add type annotation
-                   req.id === updatedSummary.id
-                     ? { ...req, ...updatedSummary } // Merge updates with existing summary
-                     : req
-                 );
-
-              case 'request_deleted': {
-                const deletedId = messageData.payload.id; // Assuming payload is { id: number }
-                // console.log(`[Frontend WS] Received request_deleted: ID ${deletedId}`); // Removed log
-                return prevRequests.filter((req: RequestSummary) => req.id !== deletedId); // Add type annotation
-              }
-              default:
-                console.warn('[Frontend WS Event] Received WebSocket message of unknown type:', messageData.type);
-                return prevRequests;
+        webSocketHook.on('request_created', (event) => {
+          const newRequestSummary = event.payload as RequestSummary;
+          setAnalysisRequests((prevRequests: RequestSummary[]) => {
+            // Avoid adding duplicates
+            if (prevRequests.some((req: RequestSummary) => req.id === newRequestSummary.id)) {
+              console.warn(`[Frontend WS] Request ${newRequestSummary.id} already exists. Updating.`);
+              return prevRequests.map((req: RequestSummary) =>
+                req.id === newRequestSummary.id ? newRequestSummary : req
+              );
             }
+            return [newRequestSummary, ...prevRequests];
           });
-
-          // Update selected request (modal) if necessary
-          // Update selected request (modal) if necessary
-          // Update selected request (modal) if necessary
-          if (messageData.type === 'request_updated') {
-            const updatedSummary = messageData.payload as Partial<RequestSummary> & { id: number };
-            // Get the latest selected request from the ref to avoid closure issues
-            const currentSelectedRequest = selectedRequestRef.current;
-            // Removed listSummary lookup as it's no longer needed for the condition or the update logic.
-
-            // Modify the IF condition: Removed listSummary check, use value from ref
-            if (currentSelectedRequest && String(currentSelectedRequest.id) === String(updatedSummary.id)) {
-                // Debug log removed.
-                // console.log(`[Frontend WS] Selected request ${updatedSummary.id} (checked via ref) was updated. Invalidating cache and triggering detail refetch.`); // Removed log
-                // --- BEGIN UPDATE PROCESS ---
-                // Immediately set loading state and clear current data before invalidating cache and refetching
-                setLoadingDetails(true);
-                // Debug log removed.
-                setSelectedRequest(null); // Clear current details to ensure loading state is shown
-                // Debug log removed.
-                // console.log(`[Frontend WS] Set loadingDetails=true and cleared selectedRequest for ID ${updatedSummary.id}.`); // Removed log
-                // --- END FIX ---
-
-                // Invalidate cache for the updated request before refetching
-                // Debug log removed.
-                setRequestDetailsCache((prevCache: Record<number, AnalysisRequest>) => {
-                  const newCache = { ...prevCache };
-                  delete newCache[updatedSummary.id];
-                  // console.log(`[Frontend WS] Removed request ${updatedSummary.id} from details cache.`); // Removed log
-                  return newCache;
-                });
-                // Debug log removed.
-
-                // Directly fetch updated details since the condition is met and cache is invalidated
-                // Now that the cache is invalidated and loading state is set, this will fetch fresh data.
-                // Debug log removed.
-                // Fetch details directly using the ID from the update message
-                const fetchUpdatedDetails = async () => {
-                  try {
-                    // console.log(`[Frontend WS] Fetching updated details for ID: ${updatedSummary.id}`); // Removed log
-                    const fullRequestDetails = await getAnalysisRequestDetails(updatedSummary.id);
-                    // console.log("[Frontend WS] Fetched Updated Full Request Details:", fullRequestDetails); // Removed log
-                    setSelectedRequest(fullRequestDetails); // Set the complete data
-                    // Update cache with the newly fetched data
-                    setRequestDetailsCache((prevCache: Record<number, AnalysisRequest>) => ({
-                      ...prevCache,
-                      [updatedSummary.id]: fullRequestDetails
-                    }));
-                  } catch (error) {
-                    message.error(t('app.fetchDetailsError', { id: updatedSummary.id }));
-                    console.error("[Frontend WS] Fetch updated request details error:", error);
-                    // Optionally close the modal or keep it open showing an error state?
-                    // Keeping it open but clearing selection might be confusing. Closing it.
-                    setIsModalOpen(false);
-                    setSelectedRequest(null); // Clear selection on error
-                  } finally {
-                    // Loading state was set at the beginning of the 'if' block
-                    setLoadingDetails(false);
-                    // console.log(`[Frontend WS] Finished fetching updated details for ID: ${updatedSummary.id}. setLoadingDetails=false.`); // Removed log
-                  }
-                };
-                fetchUpdatedDetails(); // Execute the fetch
-            }
-          } else if (messageData.type === 'request_deleted') {
-            const deletedId = messageData.payload.id; // Assuming payload is { id: number }
-            setSelectedRequest((prevSelected: AnalysisRequest | null) => { // Type annotation already added
-              if (prevSelected && prevSelected.id === deletedId) {
-                // console.log(`[Frontend WS] Closing modal because selected request ${deletedId} was deleted.`); // Removed log
-                setIsModalOpen(false); // Close modal
-                return null; // Clear selection
-              }
-              return prevSelected;
+        }),
+        
+        webSocketHook.on('request_updated', (event) => {
+          const updatedSummary = event.payload as Partial<RequestSummary> & { id: number };
+          setAnalysisRequests((prevRequests: RequestSummary[]) =>
+            prevRequests.map((req: RequestSummary) =>
+              req.id === updatedSummary.id
+                ? { ...req, ...updatedSummary }
+                : req
+            )
+          );
+          
+          // Update selected request if necessary
+          const currentSelectedRequest = selectedRequestRef.current;
+          if (currentSelectedRequest && String(currentSelectedRequest.id) === String(updatedSummary.id)) {
+            setLoadingDetails(true);
+            setSelectedRequest(null);
+            
+            // Invalidate cache
+            setRequestDetailsCache((prevCache: Record<number, AnalysisRequest>) => {
+              const newCache = { ...prevCache };
+              delete newCache[updatedSummary.id];
+              return newCache;
             });
+            
+            // Refetch details
+            getAnalysisRequestDetails(updatedSummary.id)
+              .then((updatedDetails) => {
+                setRequestDetailsCache((prevCache) => ({
+                  ...prevCache,
+                  [updatedSummary.id]: updatedDetails,
+                }));
+                setSelectedRequest(updatedDetails);
+              })
+              .catch((error) => {
+                console.error('Error refetching updated request details:', error);
+                message.error(t('app.errorFetchingDetails'));
+              })
+              .finally(() => {
+                setLoadingDetails(false);
+              });
           }
-
-        } catch (error) {
-          console.error('[WebSocket Event] Failed to parse WebSocket message or update state:', error);
-        }
-      };
-
-      // console.log(`[WebSocket Effect] Assigning onerror listener for ${clientId}...`); // Removed log
-      ws.onerror = (event) => { // Note: onerror receives an Event, not necessarily an Error object
-        console.error(`[WebSocket Event] onerror fired for ${clientId}:`, event);
-        // message.error('WebSocket connection error. Status updates may be unavailable.'); // Replaced with status indicator
-        setWsStatus('error'); // Update status state
-      };
-
-      // console.log(`[WebSocket Effect] Assigning onclose listener for ${clientId}...`); // Removed log
-      ws.onclose = (event) => {
-        // console.log(`[WebSocket Event] onclose fired for ${clientId}. Code: ${event.code}, Reason: ${event.reason}, Clean: ${event.wasClean}`); // Removed log
-        // Only set ref to null if this is the instance currently in the ref
-        if (wsRef.current === ws) {
-            // console.log(`[WebSocket Effect] Setting wsRef.current to null because the closed instance (${clientId}) matches the ref.`); // Removed log
-            wsRef.current = null;
-            setWsStatus('disconnected'); // Update status state on clean close matching ref
-        } else {
-            // console.log(`[WebSocket Effect] WebSocket instance ${clientId} closed, but it doesn't match wsRef.current. Ref not nulled.`); // Removed log
-            // If a non-current WS closes, don't change the status unless the current one is already null/disconnected
-            if (!wsRef.current) {
-                setWsStatus('disconnected');
-            }
-        }
-        // Optional: Attempt to reconnect after a delay if needed
-        // if (isInitialized === true) { // Only reconnect if still supposed to be initialized
-        //    setTimeout(connectWebSocket, 5000); // Keep potential reconnect logic if desired
-        // }
-      };
-
-      // Assign the new instance to the ref *after* listeners are attached
-      // console.log(`[WebSocket Effect] Assigning wsRef.current = ws instance for ${clientId}`); // Removed log
-      wsRef.current = ws;
-      setWsStatus('connecting'); // Update status state when attempting connection
+        }),
+        
+        webSocketHook.on('request_deleted', (event) => {
+          const deletedId = event.payload.id;
+          setAnalysisRequests((prevRequests: RequestSummary[]) =>
+            prevRequests.filter((req: RequestSummary) => req.id !== deletedId)
+          );
+          
+          // Close modal if deleted request was selected
+          const currentSelectedRequest = selectedRequestRef.current;
+          if (currentSelectedRequest && currentSelectedRequest.id === deletedId) {
+            setIsModalOpen(false);
+            setSelectedRequest(null);
+            message.info(t('app.requestDeleted'));
+          }
+        }),
+      ];
+      
+      // Connect WebSocket
+      webSocketHook.connect();
+      
+      return cleanupHandlers;
     };
 
-    connectWebSocket();
+    // Set up WebSocket connection
+    const cleanupHandlers = connectWebSocket();
 
-    // Cleanup function to close WebSocket on component unmount or when isInitialized changes
+    // Cleanup function to disconnect WebSocket and remove event handlers
     return () => {
-      // console.log('[WebSocket Effect] Cleanup function running...'); // Removed log
-      const wsToClose = wsRef.current; // Capture the current ref value
-      if (wsToClose) {
-        // console.log('[WebSocket Effect] Found WebSocket instance in ref during cleanup. Closing it.'); // Removed log
-        // Log which instance is being closed if possible (clientId isn't directly available here, maybe add it to the ref object?)
-        wsToClose.close();
-        wsRef.current = null; // Clear the ref
-        // console.log('[WebSocket Effect] wsRef.current set to null during cleanup.'); // Removed log
-      } else {
-          // console.log('[WebSocket Effect] No WebSocket instance found in ref during cleanup.'); // Removed log
+      if (wsConnectedRef.current) {
+        webSocketHook.disconnect();
+        wsConnectedRef.current = false;
+      }
+      
+      // Clean up event handlers
+      if (cleanupHandlers) {
+        cleanupHandlers.forEach(cleanup => {
+          if (typeof cleanup === 'function') {
+            cleanup();
+          }
+        });
       }
     };
   }, [isInitialized]); // Re-run effect if initialization status changes

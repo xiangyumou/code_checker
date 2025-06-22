@@ -1,6 +1,6 @@
-import axiosInstance from './axiosInstance';
-// Import specific types from the types file
-import { RequestStatus, AnalysisRequest, SubmissionFormData, RequestSummary } from '../types';
+import { apiClient } from '../lib/communication';
+// Import specific types from the shared library
+import type { RequestStatus, AnalysisRequest, SubmissionFormData, RequestSummary } from '../../shared/src/types/index';
 
 // Use SubmissionFormData for the payload type
 type CreateRequestPayload = SubmissionFormData;
@@ -46,8 +46,7 @@ export const createAnalysisRequest = async (payload: CreateRequestPayload): Prom
     }
 
     // Send the FormData object. Axios will automatically set Content-Type to multipart/form-data.
-    const response = await axiosInstance.post<AnalysisRequest>('/requests/', formData);
-    return response.data;
+    return await apiClient.post<AnalysisRequest>('/requests/', formData);
   } catch (error) {
     console.error("Error creating analysis request:", error);
     // Re-throw or handle error as needed (e.g., show notification)
@@ -72,9 +71,7 @@ export const getAnalysisRequests = async (
     if (status) {
       params.status = status;
     }
-    const response = await axiosInstance.get<RequestSummary[]>('/requests/', { params });
-    // If backend returns pagination object: return response.data.requests;
-    return response.data;
+    return await apiClient.get<RequestSummary[]>('/requests/', { params });
   } catch (error) {
     console.error("Error fetching analysis requests:", error);
     throw error;
@@ -88,8 +85,7 @@ export const getAnalysisRequests = async (
  */
 export const getAnalysisRequestDetails = async (requestId: number): Promise<AnalysisRequest> => {
   try {
-    const response = await axiosInstance.get<AnalysisRequest>(`/requests/${requestId}`);
-    return response.data;
+    return await apiClient.get<AnalysisRequest>(`/requests/${requestId}`);
   } catch (error) {
     console.error(`Error fetching details for request ${requestId}:`, error);
     throw error;
@@ -103,8 +99,7 @@ export const getAnalysisRequestDetails = async (requestId: number): Promise<Anal
  */
 export const regenerateAnalysis = async (requestId: number): Promise<AnalysisRequest> => {
   try {
-    const response = await axiosInstance.post<AnalysisRequest>(`/requests/${requestId}/regenerate`);
-    return response.data;
+    return await apiClient.post<AnalysisRequest>(`/requests/${requestId}/regenerate`);
   } catch (error) {
     console.error(`Error regenerating analysis for request ${requestId}:`, error);
     throw error;

@@ -1,4 +1,4 @@
-import axiosInstance from './axiosInstance'; // Use configured instance with interceptors
+import { apiClient } from '../lib/communication';
 import { message } from 'antd';
 
 /**
@@ -8,8 +8,7 @@ import { message } from 'antd';
  */
 export const listLogFiles = async (): Promise<string[]> => {
   try {
-    const response = await axiosInstance.get<string[]>('/admin/logs/');
-    return response.data;
+    return await apiClient.get<string[]>('/admin/logs/');
   } catch (error: any) {
     console.error("Error listing log files:", error);
     const detail = error.response?.data?.detail || 'Failed to list log files.';
@@ -37,12 +36,11 @@ export const getLogContent = async (
     if (head) params.head = head; // Note: API currently supports either tail or head, not both
 
     // Expect plain text response
-    const response = await axiosInstance.get<string>(`/admin/logs/${filename}`, {
+    return await apiClient.get<string>(`/admin/logs/${filename}`, {
         params,
         responseType: 'text', // Important: Ensure Axios treats response as text
         transformResponse: [(data) => data], // Prevent Axios from trying to parse JSON
     });
-    return response.data;
   } catch (error: any) {
     console.error(`Error fetching log content for ${filename}:`, error);
     // Try to parse potential JSON error detail from text response if status indicates error

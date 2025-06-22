@@ -53,8 +53,8 @@ export const adminLogin = async (payload: LoginPayload): Promise<LoginResponse> 
     throw new Error(detail);
   }
 };
-import axiosInstance from './axiosInstance'; // Import the configured axios instance
-import { AdminUser } from '../types'; // Import AdminUser type (assuming it exists)
+import { apiClient } from '../lib/communication';
+import type { AdminUser } from '../../shared/src/types/index';
 
 // Define the structure for the profile update payload
 interface UpdateProfilePayload {
@@ -71,8 +71,7 @@ export const getMyProfile = async (): Promise<AdminUser> => {
   try {
     // This endpoint verifies the token and returns the user if valid
     // Use relative path - axiosInstance handles the base URL
-    const response = await axiosInstance.post<AdminUser>('/login/test-token');
-    return response.data;
+    return await apiClient.post<AdminUser>('/login/test-token');
   } catch (error: any) {
     console.error("Error fetching user profile:", error);
     const detail = error.response?.data?.detail || 'Failed to fetch user profile. Session might be invalid.';
@@ -115,9 +114,9 @@ export const updateMyProfile = async (payload: UpdateProfilePayload): Promise<Ad
 
   try {
     // Use relative path - axiosInstance handles the base URL
-    const response = await axiosInstance.put<AdminUser>('/admin/profile/me', dataToSend);
-    message.success('Profile updated successfully!'); // Give success feedback
-    return response.data;
+    const result = await apiClient.put<AdminUser>('/admin/profile/me', dataToSend);
+    message.success('Profile updated successfully!');
+    return result;
   } catch (error: any) {
     console.error("Error updating user profile:", error);
     // Handle specific 409 Conflict error for username explicitly

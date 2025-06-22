@@ -33,6 +33,8 @@ services:
     volumes:
       # Mount source code for hot-reloading (Vite handles this)
       - ./frontend:/app
+      # Mount shared library for unified communication
+      - ./shared:/app/shared
       # Use an anonymous volume to prevent host node_modules from overwriting container's
       - /app/node_modules
     ports:
@@ -50,6 +52,8 @@ services:
     volumes:
        - ./admin-frontend/src:/app/src # Corrected volume path
        - ./admin-frontend/public:/app/public # Corrected volume path
+       # Mount shared library for unified communication
+       - ./shared:/app/shared
        - /app/node_modules # Use node_modules from within the container
     environment:
       NODE_ENV: development # Corrected format: key: value

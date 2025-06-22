@@ -1,8 +1,6 @@
-import axiosInstance from './axiosInstance'; // Use configured instance with interceptors
+import { apiClient } from '../lib/communication';
 import { message } from 'antd';
-// Import types from the main frontend types file (assuming shared structure)
-// Adjust path if types are defined differently for admin panel
-import { AnalysisRequest, RequestStatus, RequestSummary } from '../types'; // Use types from admin-frontend
+import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../shared/src/types/index';
 
 // Type for batch action payload
 interface BatchActionPayload {
@@ -38,8 +36,7 @@ export const getAdminAnalysisRequests = async (
       params.status = status;
     }
     // Use the admin-specific endpoint
-    const response = await axiosInstance.get<RequestSummary[]>('/admin/requests/', { params });
-    return response.data;
+    return await apiClient.get<RequestSummary[]>('/admin/requests/', { params });
   } catch (error: any) {
     console.error("Error fetching admin analysis requests:", error);
     const detail = error.response?.data?.detail || 'Failed to fetch requests.';
@@ -57,9 +54,7 @@ export const getAdminAnalysisRequests = async (
 export const getAdminAnalysisRequestDetails = async (requestId: number): Promise<AnalysisRequest> => {
   try {
     // Use the admin-specific endpoint
-    const response = await axiosInstance.get<AnalysisRequest>(`/admin/requests/${requestId}`);
-    // TODO: Backend might need to return raw response data here if required by admin panel
-    return response.data;
+    return await apiClient.get<AnalysisRequest>(`/admin/requests/${requestId}`);
   } catch (error: any) {
     console.error(`Error fetching admin details for request ${requestId}:`, error);
     const detail = error.response?.data?.detail || 'Failed to fetch request details.';
@@ -75,9 +70,9 @@ export const getAdminAnalysisRequestDetails = async (requestId: number): Promise
  */
 export const deleteAdminAnalysisRequest = async (requestId: number): Promise<AnalysisRequest> => { // Adjust return type if needed
   try {
-    const response = await axiosInstance.delete<AnalysisRequest>(`/admin/requests/${requestId}`);
+    const result = await apiClient.delete<AnalysisRequest>(`/admin/requests/${requestId}`);
     message.success(`Request #${requestId} deleted successfully.`);
-    return response.data;
+    return result;
   } catch (error: any) {
     console.error(`Error deleting request ${requestId}:`, error);
     const detail = error.response?.data?.detail || 'Failed to delete request.';
@@ -93,9 +88,9 @@ export const deleteAdminAnalysisRequest = async (requestId: number): Promise<Ana
  */
 export const retryAdminAnalysisRequest = async (requestId: number): Promise<AnalysisRequest> => {
   try {
-    const response = await axiosInstance.post<AnalysisRequest>(`/admin/requests/${requestId}/retry`);
+    const result = await apiClient.post<AnalysisRequest>(`/admin/requests/${requestId}/retry`);
     message.success(`Request #${requestId} queued for retry.`);
-    return response.data;
+    return result;
   } catch (error: any) {
     console.error(`Error retrying request ${requestId}:`, error);
     const detail = error.response?.data?.detail || 'Failed to retry request.';
@@ -111,14 +106,14 @@ export const retryAdminAnalysisRequest = async (requestId: number): Promise<Anal
  */
 export const batchAdminRequestAction = async (payload: BatchActionPayload): Promise<BatchActionResponse> => {
     try {
-        const response = await axiosInstance.post<BatchActionResponse>('/admin/requests/batch', payload);
-        message.success(response.data.message || 'Batch action processed.');
+        const result = await apiClient.post<BatchActionResponse>('/admin/requests/batch', payload);
+        message.success(result.message || 'Batch action processed.');
         // Optionally show details about failures
-        if (response.data.results?.failed?.length > 0) {
-            message.warning(`${response.data.results.failed.length} requests failed during batch operation. Check console for details.`);
-            console.warn("Batch action failures:", response.data.results.failed);
+        if (result.results?.failed?.length > 0) {
+            message.warning(`${result.results.failed.length} requests failed during batch operation. Check console for details.`);
+            console.warn("Batch action failures:", result.results.failed);
         }
-        return response.data;
+        return result;
     } catch (error: any) {
         console.error("Error performing batch action:", error);
         const detail = error.response?.data?.detail || 'Batch action failed.';

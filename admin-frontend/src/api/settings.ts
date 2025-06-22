@@ -1,6 +1,6 @@
-import axiosInstance from './axiosInstance'; // Use configured instance with interceptors
+import { apiClient } from '../lib/communication';
 import { message } from 'antd';
-import { AppSettings } from '../types'; // Import the specific settings type
+import type { AppSettings } from '../../shared/src/types/index';
 
 // Type for the settings object (keys are strings, values can be any type initially)
 // export type SettingsData = Record<string, any>; // Replaced by AppSettings
@@ -13,8 +13,7 @@ import { AppSettings } from '../types'; // Import the specific settings type
 export const getSettings = async (): Promise<AppSettings> => {
   try {
     // Expect the response data to conform to the AppSettings interface
-    const response = await axiosInstance.get<AppSettings>('/admin/settings/');
-    return response.data;
+    return await apiClient.get<AppSettings>('/admin/settings/');
   } catch (error: any) {
     console.error("Error fetching settings:", error);
     const detail = error.response?.data?.detail || 'Failed to fetch settings.';
@@ -35,9 +34,9 @@ export const updateSettings = async (settingsToUpdate: Partial<AppSettings>): Pr
     // Use Partial<AppSettings> for the input as we might only update some settings
     const payload = { settings: settingsToUpdate };
     // Expect the response data (updated settings) to conform to AppSettings
-    const response = await axiosInstance.put<AppSettings>('/admin/settings/', payload);
+    const result = await apiClient.put<AppSettings>('/admin/settings/', payload);
     message.success('Settings updated successfully!');
-    return response.data;
+    return result;
   } catch (error: any) {
     console.error("Error updating settings:", error);
     const detail = error.response?.data?.detail || 'Failed to update settings.';

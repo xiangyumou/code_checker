@@ -1,4 +1,4 @@
-import axiosInstance from './axiosInstance';
+import { apiClient } from '../lib/communication';
 
 // Type for the initialization status response
 interface InitializationStatus {
@@ -21,8 +21,7 @@ interface InitializePayload {
  */
 export const checkInitializationStatus = async (): Promise<InitializationStatus> => {
   try {
-    const response = await axiosInstance.get<InitializationStatus>('/initialize/status');
-    return response.data;
+    return await apiClient.get<InitializationStatus>('/initialize/status');
   } catch (error) {
     console.error("Error checking initialization status:", error);
     // Assume not initialized or error state? For safety, maybe treat error as needing initialization check again.
@@ -42,8 +41,7 @@ export const submitInitialization = async (payload: InitializePayload): Promise<
     if (!payload.password) {
         throw new Error("Password is required for initialization.");
     }
-    const response = await axiosInstance.post('/initialize/', payload);
-    return response.data;
+    return await apiClient.post('/initialize/', payload);
   } catch (error) {
     console.error("Error submitting initialization:", error);
     // Extract backend error message if available
