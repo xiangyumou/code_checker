@@ -84,6 +84,12 @@ const MainLayout: React.FC = () => {
     }, []); // Empty dependency array for now
     // *** End Lifted fetchData Function ***
 
+    // Close request details handler (needs to be defined before WebSocket useEffect)
+    const handleCloseRequestDetails = useCallback(() => {
+        setDetailDrawerRequestId(null);
+        setSelectedRequestDetails(null);
+    }, []);
+
     // *** WebSocket Logic (Using unified manager) ***
     const webSocketHook = useWebSocket;
     const wsConnectedRef = useRef(false);
@@ -238,10 +244,6 @@ const MainLayout: React.FC = () => {
         }
     }, [requestDetailsCache]); // Dependency: requestDetailsCache
 
-    const handleCloseRequestDetails = useCallback(() => {
-        setDetailDrawerRequestId(null);
-        setSelectedRequestDetails(null);
-    }, []);
     // --- End Detail Loading Logic ---
 
     // --- Menu and Breadcrumb Logic ---

@@ -1,6 +1,7 @@
 import React, { useState, createContext, useContext, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getMyProfile } from '../api/auth'; // Adjust path if needed
+import { updateAuthToken } from '../lib/communication'; // Import token update function
 import { AdminUser } from '../types'; // Adjust path if needed
 
 interface AuthContextType {
@@ -51,6 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true); // Set loading while logging in and fetching profile
     localStorage.setItem('admin_token', newToken);
     setToken(newToken);
+    // Update the API client with the new token
+    updateAuthToken(newToken);
     // Fetch profile immediately after setting token
     fetchUserProfile(newToken).finally(() => {
         setLoading(false);
