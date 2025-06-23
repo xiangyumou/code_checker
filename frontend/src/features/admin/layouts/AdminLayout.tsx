@@ -1,461 +1,133 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'; // Added useMemo
-import { Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom'; // Added Outlet
-import { Layout, Menu, Spin, Button, Typography, theme, message, Breadcrumb, Dropdown, Avatar, Space } from 'antd';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
-import {
-    LoginOutlined, LogoutOutlined, SettingOutlined, DatabaseOutlined, FileTextOutlined,
-    DashboardOutlined, MonitorOutlined, UserOutlined // Added new icons
-} from '@ant-design/icons';
-import { v4 as uuidv4 } from 'uuid'; // Import uuid
-// Assuming App.css contains relevant layout styles or create a specific MainLayout.css
-// import './MainLayout.css'; // Or keep using App.css if styles are general
+import React, { useEffect } from 'react';
+import { Layout, theme } from 'antd';
+import { Outlet } from 'react-router-dom';
+import { apiClient } from '../lib/communication';
 
-// Import API functions and types
-import { getAdminAnalysisRequests, getAdminAnalysisRequestDetails } from '../api/adminRequests';
-import { useWebSocket, apiClient } from '../lib/communication';
-import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/index';
+// Import custom hooks
+import { useAdminRequests } from '../hooks/useAdminRequests';
+import { useAdminRequestDetails } from '../hooks/useAdminRequestDetails';
+import { useAdminWebSocket } from '../hooks/useAdminWebSocket';
+import { useAdminNavigation } from '../hooks/useAdminNavigation';
 
-import ThemeSwitcher from '../../../components/shared/ThemeSwitcher';
-import LanguageSwitcher from '../../../components/shared/LanguageSwitcher';
+// Import components
+import AdminHeader from '../components/AdminHeader';
+import AdminSidebar from '../components/AdminSidebar';
 import RequestDetailDrawer from '../../../components/shared/RequestDetailDrawer';
 
-// Import Auth context hook (adjust path)
-import { useAuth } from '../contexts/AuthContext';
+const { Content } = Layout;
 
-const { Header, Content, Footer, Sider } = Layout;
-const { Title, Text } = Typography;
-
-// --- Main Application Layout (for authenticated users) ---
 const MainLayout: React.FC = () => {
-    const { t } = useTranslation(); // Initialize useTranslation hook
-    const { logout, user } = useAuth(); // Assuming user info is available in AuthContext
-    const navigate = useNavigate();
-    const location = useLocation();
-    // Use theme hook correctly
-    const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken(); // Get borderRadiusLG as well
+  const {
+    token: { colorBgContainer, borderRadiusLG },
+  } = theme.useToken();
 
-    // *** Lifted State ***
-    const [requests, setRequests] = useState<RequestSummary[]>([]); // Changed type to RequestSummary[]
-    const [loadingRequests, setLoadingRequests] = useState(false);
-    // Pagination state
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
-    const [totalRequests, setTotalRequests] = useState(0);
-    // State for caching full request details
-    const [requestDetailsCache, setRequestDetailsCache] = useState<Record<number, AnalysisRequest>>({});
-    // State for the currently selected full request details for the drawer
-    const [selectedRequestDetails, setSelectedRequestDetails] = useState<AnalysisRequest | null>(null);
-    // State for the ID of the request whose detail drawer is open
-    const [detailDrawerRequestId, setDetailDrawerRequestId] = useState<number | null>(null);
-    // State to track ID of a request deleted while its detail view might be open (Keep this for now, might be redundant later)
-    const [deletedRequestIdForDetailView, setDeletedRequestIdForDetailView] = useState<number | null>(null);
-    // *** End Lifted State ***
+  // Custom hooks for state management
+  const {
+    requests,
+    loadingRequests,
+    currentPage,
+    pageSize,
+    totalRequests,
+    fetchData,
+    handlePageChange,
+    updateRequest,
+    addRequest,
+    removeRequest,
+  } = useAdminRequests();
 
-    // Ref to track the latest selected request details for WebSocket handler
-    const selectedRequestDetailsRef = useRef<AnalysisRequest | null>(null);
+  const {
+    requestDetailsCache,
+    selectedRequestDetails,
+    detailDrawerRequestId,
+    deletedRequestIdForDetailView,
+    resetDeletedRequestId,
+    handleCloseRequestDetails,
+    handleOpenRequestDetails,
+    updateSelectedRequestDetails,
+    handleRequestDeleted,
+  } = useAdminRequestDetails();
 
-    // Keep the ref updated whenever the state changes
-    useEffect(() => {
-        selectedRequestDetailsRef.current = selectedRequestDetails;
-    }, [selectedRequestDetails]);
+  const {
+    menuItems,
+    getCurrentPathKeys,
+    getBreadcrumbItems,
+    handleUserMenuClick,
+    userMenuItems,
+    username,
+  } = useAdminNavigation();
 
-    // Function to reset the deleted ID state (passed down to detail view)
-    const resetDeletedRequestId = useCallback(() => {
-        setDeletedRequestIdForDetailView(null);
-    }, []);
+  // Setup WebSocket connection
+  useAdminWebSocket({
+    onRequestCreated: addRequest,
+    onRequestUpdated: updateRequest,
+    onRequestDeleted: (deletedId) => {
+      removeRequest(deletedId);
+      handleRequestDeleted(deletedId);
+    },
+    onSelectedRequestUpdated: updateSelectedRequestDetails,
+  });
 
-    // *** Lifted fetchData Function with Pagination ***
-    const fetchData = useCallback(async (page: number = currentPage, size: number = pageSize, status?: RequestStatus) => {
-        setLoadingRequests(true);
-        try {
-            // Calculate skip offset for pagination
-            const skip = (page - 1) * size;
-            const fetchedRequests = await getAdminAnalysisRequests(status, skip, size);
-            setRequests(fetchedRequests);
-            // Note: Backend should return total count for proper pagination
-            // For now, if we get less than pageSize, assume we're at the end
-            if (fetchedRequests.length < size) {
-                setTotalRequests((page - 1) * size + fetchedRequests.length);
-            } else {
-                // Estimate total (backend should provide actual total)
-                setTotalRequests(page * size + 1); // +1 to show there might be more
-            }
-        } catch (error) {
-            message.error(t('adminRequests.fetchError'));
-            // Fetch admin requests error
-        } finally {
-            setLoadingRequests(false);
-        }
-    }, [currentPage, pageSize, t]);
-    // *** End Lifted fetchData Function ***
+  // Fetch initial data when component mounts
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    // Close request details handler (needs to be defined before WebSocket useEffect)
-    const handleCloseRequestDetails = useCallback(() => {
-        setDetailDrawerRequestId(null);
-        setSelectedRequestDetails(null);
-    }, []);
+  const { selectedKey, openKey } = getCurrentPathKeys();
+  const breadcrumbItems = getBreadcrumbItems();
 
-    // *** WebSocket Logic (Using unified manager) ***
-    const webSocketHook = useWebSocket;
-    const wsConnectedRef = useRef(false);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const reconnectAttemptsRef = useRef(0);
-    const maxReconnectAttempts = 5;
-    const reconnectDelayMs = 3000;
-
-    useEffect(() => {
-        if (wsConnectedRef.current) {
-            return; // Already connected
-        }
-
-        // Set up event handlers using the unified manager
-        const cleanupHandlers = [
-            webSocketHook.on('connection_established', () => {
-                // Admin MainLayout WebSocket connected
-                message.success(t('adminLayout.websocketConnected'));
-                wsConnectedRef.current = true;
-                reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
-            }),
-            
-            webSocketHook.on('connection_lost', () => {
-                // Admin MainLayout WebSocket disconnected
-                wsConnectedRef.current = false;
-                // Attempt to reconnect with exponential backoff
-                if (reconnectAttemptsRef.current < maxReconnectAttempts) {
-                    const delay = reconnectDelayMs * Math.pow(2, reconnectAttemptsRef.current);
-                    reconnectTimeoutRef.current = setTimeout(() => {
-                        reconnectAttemptsRef.current += 1;
-                        webSocketHook.connect();
-                    }, delay);
-                } else {
-                    message.error(t('adminLayout.websocketReconnectFailed'));
-                }
-            }),
-
-            webSocketHook.on('request_created', (event) => {
-                const payload = event.payload as RequestSummary;
-                // Admin MainLayout Request created
-                setRequests((prevRequests: RequestSummary[]) => {
-                    // Avoid adding duplicates
-                    if (prevRequests.some((req: RequestSummary) => req.id === payload.id)) {
-                        // Request already exists, likely due to race condition. Updating instead.
-                        return prevRequests.map((req: RequestSummary) =>
-                            req.id === payload.id ? payload : req
-                        );
-                    }
-                    // Add the new request summary at the beginning
-                    return [payload, ...prevRequests];
-                });
-            }),
-
-            webSocketHook.on('request_updated', (event) => {
-                const payload = event.payload as Partial<RequestSummary> & { id: number };
-                // Admin MainLayout Request updated
-                
-                // Get current selected details from ref for accurate comparison
-                const currentSelectedDetails = selectedRequestDetailsRef.current;
-
-                // If the updated request is currently selected in detail view, update it
-                if (currentSelectedDetails && currentSelectedDetails.id === payload.id) {
-                    // --- Immediate Partial Update ---
-                    setSelectedRequestDetails((prevDetails: AnalysisRequest | null) => {
-                        if (prevDetails && prevDetails.id === payload.id) {
-                            return { ...prevDetails, ...payload };
-                        }
-                        return prevDetails;
-                    });
-                    // --- End Immediate Partial Update ---
-
-                    // --- Asynchronous Full Refetch ---
-                    getAdminAnalysisRequestDetails(payload.id)
-                        .then(fullDetails => {
-                            // Update with the complete details from API
-                            setSelectedRequestDetails(fullDetails);
-                            // Update cache with full details
-                            setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => ({ 
-                                ...prev, 
-                                [payload.id]: fullDetails 
-                            }));
-                        })
-                        .catch((error: Error) => {
-                            // Error refetching FULL details for request after update
-                            message.error(t('adminLayout.refreshDetailsError', { id: payload.id }));
-                            // Keep the partially updated state in case of full fetch error
-                        });
-                    // --- End Asynchronous Full Refetch ---
-                }
-
-                // Update the summary in the list
-                setRequests((prevRequests: RequestSummary[]) =>
-                    prevRequests.map((req: RequestSummary) =>
-                        req.id === payload.id
-                            ? { ...req, ...payload } // Spread partial update onto existing summary
-                            : req
-                    )
-                );
-            }),
-
-            webSocketHook.on('request_deleted', (event) => {
-                const payload = event.payload as { id: number };
-                // Admin MainLayout Request deleted
-                const deletedId = payload.id;
-
-                // Check if the deleted request's detail drawer is currently open
-                if (detailDrawerRequestId === deletedId) {
-                    handleCloseRequestDetails();
-                }
-                // Also reset the older state variable if it matches
-                if (deletedRequestIdForDetailView === deletedId) {
-                    setDeletedRequestIdForDetailView(null);
-                }
-
-                // Filter out the deleted request from the main list
-                setRequests((prevRequests: RequestSummary[]) =>
-                    prevRequests.filter((req: RequestSummary) => req.id !== deletedId)
-                );
-
-                // Remove from cache if exists
-                setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => {
-                    const newCache = { ...prev };
-                    delete newCache[deletedId];
-                    return newCache;
-                });
-            })
-        ];
-
-        // Connect to WebSocket
-        webSocketHook.connect();
-
-        // Cleanup function
-        return () => {
-            // Admin MainLayout Cleaning up WebSocket handlers
-            // Call all cleanup handlers to remove event listeners
-            cleanupHandlers.forEach(cleanup => cleanup());
-            // Clear any pending reconnection attempts
-            if (reconnectTimeoutRef.current) {
-                clearTimeout(reconnectTimeoutRef.current);
-                reconnectTimeoutRef.current = null;
-            }
-            // Disconnect from WebSocket
-            webSocketHook.disconnect();
-            wsConnectedRef.current = false;
-        };
-    }, [webSocketHook, detailDrawerRequestId, deletedRequestIdForDetailView, handleCloseRequestDetails]); // Dependencies needed for the handlers
-    // *** End WebSocket Logic ***
-
-    // Pagination handlers
-    const handlePageChange = useCallback((page: number, size?: number) => {
-        setCurrentPage(page);
-        if (size && size !== pageSize) {
-            setPageSize(size);
-        }
-        fetchData(page, size || pageSize);
-    }, [fetchData, pageSize]);
-
-    // Fetch initial data when MainLayout mounts
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
-
-    // --- Detail Loading Logic ---
-    const handleOpenRequestDetails = useCallback(async (requestId: number) => {
-        setDetailDrawerRequestId(requestId); // Open drawer immediately
-
-        if (requestDetailsCache[requestId]) {
-            setSelectedRequestDetails(requestDetailsCache[requestId]);
-        } else {
-            setSelectedRequestDetails(null); // Show loading state in drawer
-            try {
-                const details = await getAdminAnalysisRequestDetails(requestId);
-                setSelectedRequestDetails(details);
-                setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => ({ ...prev, [requestId]: details }));
-            } catch (error) {
-                // Error fetching details for request
-                message.error(t('adminLayout.loadDetailsError', { id: requestId }));
-                // Optionally close drawer on error, or let drawer display an error state
-                // setDetailDrawerRequestId(null);
-            }
-        }
-    }, [requestDetailsCache]); // Dependency: requestDetailsCache
-
-    // --- End Detail Loading Logic ---
-
-    // --- Menu and Breadcrumb Logic ---
-    // Use t() function for menu labels
-    const menuItems = [
-        { key: '/admin/dashboard', icon: <DashboardOutlined />, label: t('dashboard') },
-        { key: '/admin/requests', icon: <DatabaseOutlined />, label: t('requestManagement.title') }, // Use existing key
-        {
-            key: 'monitoring', icon: <MonitorOutlined />, label: t('systemMonitoring.title'), // Define new key
-            children: [
-                { key: '/admin/logs', icon: <FileTextOutlined />, label: t('logs') }, // Use existing key
-                // Add other monitoring links here later
-            ],
-        },
-        {
-            key: 'settings', icon: <SettingOutlined />, label: t('settingsPage.title'), // Use existing key
-            children: [
-                // Link directly to the main settings page for now
-                { key: '/admin/settings', label: t('settingsPage.appAndProfile') }, // Define new key
-                // Could add direct links to tabs later if needed:
-                // { key: '/admin/settings/app', label: t('settingsPage.appSettings') }, // Define new key
-                // { key: '/admin/settings/profile', label: t('settingsPage.profileSettings') }, // Define new key
-            ],
-        },
-    ];
-
-    // Determine selected keys and open keys for the menu based on current path
-    const getCurrentPathKeys = () => {
-        const path = location.pathname;
-        let openKey = '';
-        // Find the parent key if the current path is a child
-        for (const item of menuItems) {
-            if (item.children) {
-                for (const child of item.children) {
-                    // Handle nested settings path if direct linking is used later
-                    // if (child.key === path || (path.startsWith('/settings') && item.key === 'settings')) {
-                    if (child.key === path) {
-                        openKey = item.key;
-                        break;
-                    }
-                }
-            }
-            if (openKey) break;
-        }
-        // Special case for settings main page
-        if (path === '/admin/settings' && !openKey) {
-             const settingsParent = menuItems.find(item => item.key === 'settings');
-             if (settingsParent) openKey = settingsParent.key;
-        }
-        return { selectedKey: path, openKey: openKey ? [openKey] : [] };
-    };
-    const { selectedKey, openKey } = getCurrentPathKeys();
-
-    // Generate Breadcrumb items using t()
-    // Note: Keys in breadcrumbNameMap should match the translation keys for consistency
-    const breadcrumbNameMap: Record<string, string> = {
-        '/admin/dashboard': t('dashboard'),
-        '/admin/requests': t('requestManagement.title'),
-        '/admin/monitoring': t('systemMonitoring.title'), // Use the same new key as menu
-        '/admin/logs': t('logs'),
-        '/admin/settings': t('settingsPage.title'),
-        // '/admin/settings/app': t('settingsPage.appSettings'), // Use the same new key as menu
-        // '/admin/settings/profile': t('settingsPage.profileSettings'), // Use the same new key as menu
-    };
-
-    const pathSnippets = location.pathname.split('/').filter((i: string) => i);
-    // Generate breadcrumb items as objects for the 'items' prop
-    const breadcrumbItems = [
-        {
-            key: 'home',
-            // Use t() for the home breadcrumb link
-            title: <a onClick={() => navigate('/admin/dashboard')}>{t('dashboard')}</a>,
-        },
-        ...pathSnippets.map((_: string, index: number) => {
-            const url = `/${pathSnippets.slice(0, index + 1).join('/')}`;
-            // Use translated name from map, fallback to snippet
-            const name = breadcrumbNameMap[url] || url.substring(url.lastIndexOf('/') + 1); // Fallback
-            const isLast = index === pathSnippets.length - 1;
-            return {
-                key: url,
-                title: isLast ? name : <a onClick={() => navigate(url)}>{name}</a>,
-            };
-        }),
-    ];
-
-
-    // --- User Menu Logic - memoized ---
-    const handleUserMenuClick = useCallback((e: { key: string }) => {
-        if (e.key === 'profile') {
-            navigate('/admin/settings'); // Navigate to settings page (tabs handle specifics)
-        } else if (e.key === 'logout') {
-            logout();
-            // No need to navigate here, ProtectedRoute will handle redirect
-        }
-    }, [navigate, logout]);
-
-    // Use t() for user menu items - memoized
-    const userMenuItems = useMemo(() => [
-        { key: 'profile', icon: <UserOutlined />, label: t('userMenu.profile') }, // Define new key
-        { key: 'logout', icon: <LogoutOutlined />, label: t('logout') }, // Use existing key
-    ], [t]);
-
-    // Get username from context
-    const username = user?.username || 'Admin'; // Use user from useAuth()
-
-    return (
-        <Layout style={{ minHeight: '100vh' }}>
-            <Sider breakpoint="lg" collapsedWidth="0" theme="dark">
-                <div style={{ height: '32px', margin: '16px', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {/* Use t() for the panel title */}
-                    <Title level={5} style={{ color: 'white', margin: 0 }}>{t('adminPanel.title')}</Title> {/* Define new key */}
-                </div>
-                <Menu
-                    theme="dark"
-                    mode="inline"
-                    selectedKeys={[selectedKey]}
-                    defaultOpenKeys={openKey}
-                    onClick={({ key }: { key: string }) => navigate(key)}
-                    items={menuItems}
-                />
-            </Sider>
-            <Layout>
-                <Header style={{ padding: '0 16px', background: colorBgContainer, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Breadcrumb items={breadcrumbItems} />
-                    {/* Right side controls: Language Switcher, Theme Switcher and User Menu */}
-                    <Space>
-                        <LanguageSwitcher /> {/* Add the language switcher */}
-                        <ThemeSwitcher /> {/* Add the theme switcher */}
-                        <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }} placement="bottomRight">
-                            <a onClick={(e: React.MouseEvent<HTMLAnchorElement>) => e.preventDefault()} style={{cursor: 'pointer'}}>
-                                <Space>
-                                    <Avatar size="small" icon={<UserOutlined />} />
-                                    <Text>{username}</Text> {/* Display username */}
-                                </Space>
-                            </a>
-                        </Dropdown>
-                    </Space>
-                </Header>
-                <Content style={{ margin: '24px 16px 0', overflow: 'initial' }}>
-                    {/* Use Outlet to render nested routes */}
-                    <div style={{ padding: 24, background: colorBgContainer, borderRadius: borderRadiusLG, minHeight: 'calc(100vh - 64px - 48px - 69px)' }}> {/* Adjust minHeight based on Header/Footer/Margin */}
-                         {/* Pass necessary state and functions down via Outlet context */}
-                         {/* Pass down new state and handlers */}
-                         <Outlet context={{
-                             requests,
-                             loadingRequests,
-                             fetchData,
-                             deletedRequestIdForDetailView, // Keep for now
-                             resetDeletedRequestId, // Keep for now
-                             // Add new props for detail loading
-                             requestDetailsCache,
-                             selectedRequestDetails,
-                             detailDrawerRequestId,
-                             handleOpenRequestDetails, // Pass implemented function
-                             handleCloseRequestDetails, // Pass implemented function
-                             // Pagination props
-                             currentPage,
-                             pageSize,
-                             totalRequests,
-                             handlePageChange,
-                             // Removed direct setters unless absolutely necessary elsewhere
-                         }} />
-                    </div>
-                </Content>
-                {/* Use t() for the footer text */}
-                {/* <Footer style={{ textAlign: 'center', padding: '12px 50px' }}>{t('adminPanel.title')} ©{new Date().getFullYear()}</Footer> */}
-            </Layout>
-            {/* Render the RequestDetailDrawer here, controlled by MainLayout state */}
-            <RequestDetailDrawer
-                open={detailDrawerRequestId !== null}
-                onClose={handleCloseRequestDetails}
-                requestData={selectedRequestDetails}
-                isLoading={detailDrawerRequestId !== null && selectedRequestDetails === null}
-                apiClient={apiClient}
-                // Note: deletedRequestId and resetDeletedRequestId props are not part of the shared component interface
-            />
-        </Layout>
-    );
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <AdminSidebar
+        menuItems={menuItems}
+        selectedKey={selectedKey}
+        openKeys={openKey}
+        onMenuClick={(key) => window.location.pathname = key}
+      />
+      
+      <Layout>
+        <AdminHeader
+          breadcrumbItems={breadcrumbItems}
+          userMenuItems={userMenuItems}
+          username={username}
+          onUserMenuClick={handleUserMenuClick}
+        />
+        
+        <Content style={{ margin: '24px 16px 0', overflow: 'initial' }}>
+          <div style={{ 
+            padding: 24, 
+            background: colorBgContainer, 
+            borderRadius: borderRadiusLG, 
+            minHeight: 'calc(100vh - 64px - 48px - 69px)' 
+          }}>
+            <Outlet context={{
+              requests,
+              loadingRequests,
+              fetchData,
+              deletedRequestIdForDetailView,
+              resetDeletedRequestId,
+              requestDetailsCache,
+              selectedRequestDetails,
+              detailDrawerRequestId,
+              handleOpenRequestDetails,
+              handleCloseRequestDetails,
+              currentPage,
+              pageSize,
+              totalRequests,
+              handlePageChange,
+            }} />
+          </div>
+        </Content>
+      </Layout>
+      
+      <RequestDetailDrawer
+        open={detailDrawerRequestId !== null}
+        onClose={handleCloseRequestDetails}
+        requestData={selectedRequestDetails}
+        isLoading={detailDrawerRequestId !== null && selectedRequestDetails === null}
+        apiClient={apiClient}
+      />
+    </Layout>
+  );
 };
 
-export default MainLayout; // Export the layout component
+export default MainLayout;

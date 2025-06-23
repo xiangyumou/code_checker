@@ -50,6 +50,27 @@ async def get_current_active_user(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     return current_user
 
+async def get_optional_current_user(
+    db: AsyncSession = Depends(get_db), 
+    token: Optional[str] = Depends(reusable_oauth2)
+) -> Optional[AdminUser]:
+    """
+    Dependency to optionally get the current user from the token.
+    Returns None if no token provided or token is invalid.
+    Used for endpoints that should log but not require authentication.
+    """
+    if not token:
+        return None
+    
+    try:
+        token_data = security.decode_token(token)
+        if not token_data or not token_data.sub:
+            return None
+        user = await crud_admin_user.get_by_username(db, username=token_data.sub)
+        return user
+    except Exception:
+        return None
+
 # Placeholder for other potential dependencies
 # def get_some_service():
 #     pass

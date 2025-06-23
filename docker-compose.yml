@@ -17,6 +17,8 @@ services:
     environment:
       PYTHONUNBUFFERED: 1
       PYTHONDONTWRITEBYTECODE: 1
+      # --- Security Configuration ---
+      SECRET_KEY: f258fe79dccae997f0fd78f9a9e45e79bb46a56fecdd78d27dc2a45ee37a45ac
       # --- PostgreSQL Connection Details (Hardcoded) ---
       # !!! 请将下面的占位符替换为你的实际数据库凭证 !!!
       POSTGRES_SERVER: db # Service name of the PostgreSQL container

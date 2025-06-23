@@ -25,7 +25,7 @@ const DEFAULT_CONFIG: Omit<CommunicationConfig, 'client'> = {
     retryAttempts: 3,
   },
   websocket: {
-    url: `ws://${window.location.host}/ws/status`,
+    url: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/status`,
     reconnectInterval: 5000,
     maxReconnectAttempts: 5,
   },

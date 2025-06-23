@@ -14,6 +14,8 @@ from app.api import deps # Import deps to use deps.get_request_service
 from app.websockets.connection_manager import ConnectionManager # Import manager type hint for DI
 # Import RequestService
 from app.services.request_service import RequestService
+from app.models.admin_user import AdminUser
+from typing import Optional
 
 router = APIRouter()
 logger = logging.getLogger("app." + __name__)
@@ -27,11 +29,20 @@ async def create_request(
     *,
     request: Request, # Receive raw request
     db: AsyncSession = Depends(deps.get_db),
-    request_service: RequestService = Depends(deps.get_request_service)
+    request_service: RequestService = Depends(deps.get_request_service),
+    current_user: Optional[AdminUser] = Depends(deps.get_optional_current_user)
 ) -> Any:
     """
     Create new analysis request. Manually parses form data for debugging.
+    Logs unauthorized access attempts.
     """
+    # Log access attempt
+    client_ip = request.client.host if request.client else "unknown"
+    if current_user:
+        logger.info(f"Request creation attempt by authenticated user: {current_user.username} from IP: {client_ip}")
+    else:
+        logger.warning(f"Request creation attempt by unauthenticated user from IP: {client_ip}")
+    
     try:
         # Manually parse the form data
         form_data = await request.form()
@@ -100,17 +111,23 @@ async def create_request(
 
 @router.get("/", response_model=List[schemas.RequestSummary]) # Use RequestSummary for list view
 async def read_requests(
+    request: Request,
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     status: Optional[schemas.RequestStatus] = Query(None),
-    request_service: RequestService = Depends(deps.get_request_service) # Inject service
-    # No user dependency
-    # Removed db dependency
+    request_service: RequestService = Depends(deps.get_request_service), # Inject service
+    current_user: Optional[AdminUser] = Depends(deps.get_optional_current_user)
 ) -> Any:
     """
     Retrieve analysis requests using RequestService. Publicly accessible.
-    Supports filtering by status and pagination.
+    Supports filtering by status and pagination. Logs unauthorized access attempts.
     """
+    # Log access attempt
+    client_ip = request.client.host if request.client else "unknown"
+    if current_user:
+        logger.info(f"Request list access by authenticated user: {current_user.username} from IP: {client_ip}")
+    else:
+        logger.warning(f"Request list access by unauthenticated user from IP: {client_ip}")
     # Call service layer to get requests
     requests = await request_service.get_all_requests(
         status=status, skip=skip, limit=limit
@@ -125,14 +142,21 @@ async def read_requests(
 @router.get("/{request_id}", response_model=schemas.Request)
 async def read_request(
     *,
+    request: Request,
     request_id: int,
-    request_service: RequestService = Depends(deps.get_request_service) # Inject service
-    # No user dependency
-    # Removed db dependency
+    request_service: RequestService = Depends(deps.get_request_service), # Inject service
+    current_user: Optional[AdminUser] = Depends(deps.get_optional_current_user)
 ) -> Any:
     """
     Get specific request by ID using RequestService. Publicly accessible.
+    Logs unauthorized access attempts.
     """
+    # Log access attempt
+    client_ip = request.client.host if request.client else "unknown"
+    if current_user:
+        logger.info(f"Request {request_id} access by authenticated user: {current_user.username} from IP: {client_ip}")
+    else:
+        logger.warning(f"Request {request_id} access by unauthenticated user from IP: {client_ip}")
     # Call service layer to get the request
     # Service method handles the "not found" case and raises HTTPException
     request_obj = await request_service.get_request(request_id=request_id)
@@ -147,14 +171,20 @@ async def regenerate_request_analysis(
     request: Request, # Add Request object to access app state
     db: AsyncSession = Depends(deps.get_db), # Keep for transaction management
     request_id: int,
-    request_service: RequestService = Depends(deps.get_request_service) # Inject service
-    # app: FastAPI = Depends(get_app) # REMOVED: No longer needed directly
-    # No user dependency
+    request_service: RequestService = Depends(deps.get_request_service), # Inject service
+    current_user: Optional[AdminUser] = Depends(deps.get_optional_current_user)
 ) -> Any:
     """
     Create a *new* analysis request based on an existing one by calling the RequestService.
-    Handles transaction commit/rollback at the endpoint level.
+    Handles transaction commit/rollback at the endpoint level. Logs unauthorized access attempts.
     """
+    # Log access attempt
+    client_ip = request.client.host if request.client else "unknown"
+    if current_user:
+        logger.info(f"Request {request_id} regeneration by authenticated user: {current_user.username} from IP: {client_ip}")
+    else:
+        logger.warning(f"Request {request_id} regeneration attempt by unauthenticated user from IP: {client_ip}")
+    
     logger.info(f"Received request to regenerate analysis for request ID: {request_id}")
 
     try:

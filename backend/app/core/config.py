@@ -73,10 +73,20 @@ class Settings(BaseSettings):
     # LOG_LEVEL: str | None = None # Loaded dynamically
 
     # Security settings
-    # Generate a secret key using: openssl rand -hex 32
-    SECRET_KEY: str = "YOUR_SECRET_KEY_HERE" # CHANGE THIS! Load from env or secrets management
+    # Generate a secret key using: openssl rand -hex 32 or set in environment
+    SECRET_KEY: str = os.environ.get("SECRET_KEY", "")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8 # 8 days for admin token
+
+    @field_validator("SECRET_KEY", mode="after")
+    @classmethod
+    def validate_secret_key(cls, v: str) -> str:
+        if not v or len(v) < 32:
+            raise ValueError(
+                "SECRET_KEY must be set as environment variable with at least 32 characters. "
+                "Generate one using: openssl rand -hex 32"
+            )
+        return v
 
     # Initialization status - This will be checked dynamically via crud_setting
     # IS_INITIALIZED: bool = False # Checked dynamically

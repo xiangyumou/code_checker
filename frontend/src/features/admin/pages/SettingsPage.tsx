@@ -180,7 +180,7 @@ const SettingsPage: React.FC = () => {
       if (usernameChanged) {
         message.success(t('settingsPage.profileUpdateSuccessUsernameChanged'), 5); // Define new key
         // Clear token (assuming token is in localStorage, adjust if different)
-        localStorage.removeItem('admin_access_token');
+        localStorage.removeItem('admin_token');
         // Redirect to login page after a short delay
         setTimeout(() => navigate('/login'), 1500); // Adjust path if needed
       } else {

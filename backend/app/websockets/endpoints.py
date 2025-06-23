@@ -30,13 +30,21 @@ async def websocket_endpoint(
 
         # Keep the connection alive and listen for potential client messages (optional)
         while True:
-            # You might not need to receive data if it's just for server->client push
-            # data = await websocket.receive_text()
-            # logger.debug(f"Received message from {client_id}: {data}")
-            # await manager.send_personal_message(f"You wrote: {data}", client_id)
-
-            # Keep connection open without active listening if only broadcasting
-            await websocket.receive_text() # This will raise WebSocketDisconnect if client closes
+            try:
+                # Listen for client messages or ping/pong to keep connection alive
+                message = await websocket.receive()
+                
+                # Handle different message types
+                if message["type"] == "websocket.disconnect":
+                    break
+                elif message["type"] == "websocket.receive":
+                    # Optional: handle text messages from client if needed
+                    if "text" in message:
+                        logger.debug(f"Received message from {client_id}: {message['text']}")
+                    # For now, we just acknowledge receipt but don't respond
+            except Exception as e:
+                logger.debug(f"WebSocket receive error for {client_id}: {e}")
+                break
 
     except WebSocketDisconnect:
         manager.disconnect(client_id)

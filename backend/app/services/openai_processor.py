@@ -57,33 +57,22 @@ class OpenAIProcessor:
 
     async def _get_client(self, api_key: str, base_url: Optional[str]) -> AsyncOpenAI:
         """
-        Lazily initializes and returns the AsyncOpenAI client instance,
-        or returns the injected client if provided.
-        Configures the client with the provided key and base_url for the current request.
+        Creates a new AsyncOpenAI client instance for each request to avoid race conditions.
+        This ensures thread-safety under concurrent access.
         """
         if self._client_instance:
-            # If a client was injected (e.g., during testing), configure and return it
-            # Note: This assumes the injected client allows re-configuration per request.
-            # If a client was injected, we assume it's pre-configured or a mock.
-            # Re-configuring it here might not be intended or possible.
-            # For non-injected clients, we create a new one below with current settings.
-            # If re-configuration of injected clients is needed, the logic here needs review.
-            logger.warning("Returning potentially pre-configured injected client without applying current request's API key/base URL.")
+            # If a client was injected (e.g., during testing), return it as-is
+            # We assume test clients are properly configured
+            logger.debug("Returning injected client (likely for testing).")
             return self._client_instance
 
-        # Lazy initialization with lock for the shared instance
-        # Note: Creating a new client per request might be safer if settings change frequently.
-        async with self._client_lock:
-            # Always create/recreate the client with current settings for this request
-            # This avoids issues if settings change between requests using the same processor instance.
-            # If performance is critical, consider a pool of clients or more complex management.
-            logger.info(f"Initializing AsyncOpenAI client for request with base_url: {base_url}")
-            # Pass api_key and base_url directly to the constructor
-            self._client_instance = AsyncOpenAI(
-                api_key=api_key,
-                base_url=base_url # base_url can be None, AsyncOpenAI handles it
-            )
-            return self._client_instance
+        # Create a new client instance for each request to avoid race conditions
+        # This is safer than sharing a single client instance across concurrent requests
+        logger.debug(f"Creating new AsyncOpenAI client instance with base_url: {base_url}")
+        return AsyncOpenAI(
+            api_key=api_key,
+            base_url=base_url # base_url can be None, AsyncOpenAI handles it
+        )
 
     async def _build_messages(self, request: Request, system_prompt_content: str) -> List[Dict[str, Any]]: # Make method async
         """
@@ -113,8 +102,23 @@ class OpenAIProcessor:
                     continue
 
                 try:
+                    # Sanitize the image reference to prevent path traversal
+                    # Remove any path traversal characters and ensure it's a safe filename
+                    sanitized_ref = os.path.normpath(image_ref).replace('..', '').lstrip('/')
+                    if not sanitized_ref or sanitized_ref != image_ref:
+                        logger.warning(f"Request ID {request.id}: Potentially malicious image reference rejected: {image_ref}")
+                        continue
+                    
                     # Construct absolute path within the container
-                    absolute_path = BASE_DATA_DIR / image_ref
+                    absolute_path = BASE_DATA_DIR / sanitized_ref
+                    
+                    # Ensure the resolved path is still within the BASE_DATA_DIR
+                    try:
+                        absolute_path.resolve().relative_to(BASE_DATA_DIR.resolve())
+                    except ValueError:
+                        logger.error(f"Request ID {request.id}: Path traversal attempt detected for: {image_ref}")
+                        continue
+                    
                     logger.debug(f"Request ID {request.id}: Attempting to load image from {absolute_path}")
 
                     if not absolute_path.is_file():
@@ -299,283 +303,288 @@ class OpenAIProcessor:
 openai_processor = OpenAIProcessor()
 
 
+# --- Helper Functions for Analysis Processing ---
+
+async def _validate_and_load_settings(db: AsyncSession, request_id: int) -> Tuple[Dict[str, Any], int, int]:
+    """
+    Load and validate dynamic settings from the database.
+    Returns (db_settings, parallel_requests, total_attempts_limit)
+    """
+    db_settings = await crud_setting.get_all_settings_as_dict(db)
+    
+    # Validate and get parallel processing settings with defaults
+    try:
+        parallel_requests = int(db_settings.get("parallel_openai_requests_per_prompt", '1'))
+        if parallel_requests < 1:
+            logger.warning(f"Parsed parallel_requests ({parallel_requests}) is less than 1, setting to 1.")
+            parallel_requests = 1
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid parallel_openai_requests_per_prompt setting ('{db_settings.get('parallel_openai_requests_per_prompt')}') in DB, using default 1.")
+        parallel_requests = 1
+        
+    try:
+        total_attempts_limit = int(db_settings.get("max_total_openai_attempts_per_prompt", '3'))
+        if total_attempts_limit < 1:
+            logger.warning(f"Parsed total_attempts_limit ({total_attempts_limit}) is less than 1, setting to 1.")
+            total_attempts_limit = 1
+    except (ValueError, TypeError):
+        logger.warning(f"Invalid max_total_openai_attempts_per_prompt setting ('{db_settings.get('max_total_openai_attempts_per_prompt')}') in DB, using default 3.")
+        total_attempts_limit = 3
+
+    # Ensure total attempts is at least parallel requests
+    if total_attempts_limit < parallel_requests:
+        logger.warning(f"Total attempts limit ({total_attempts_limit}) is less than parallel requests ({parallel_requests}). Setting total attempts to {parallel_requests}.")
+        total_attempts_limit = parallel_requests
+
+    logger.info(f"Request ID {request_id}: Loaded settings: parallel={parallel_requests}, attempts={total_attempts_limit}")
+    return db_settings, parallel_requests, total_attempts_limit
+
+async def _update_request_status(
+    db: AsyncSession, 
+    request: Request, 
+    status: RequestStatus,
+    error_message: Optional[str] = None
+) -> Request:
+    """
+    Update request status and broadcast via WebSocket.
+    Returns the updated request object.
+    """
+    updated_request = await crud.crud_request.update_status(
+        db, db_obj=request, status=status, error_message=error_message
+    )
+    await db.refresh(updated_request)
+    
+    # Broadcast the update event via WebSocket
+    try:
+        await ws_manager.broadcast_request_updated(
+            request_id=updated_request.id,
+            status=updated_request.status,
+            updated_at=updated_request.updated_at,
+            error_message=updated_request.error_message
+        )
+        logger.info(f"Request ID {updated_request.id} status updated to {status} and broadcasted.")
+    except Exception as e:
+        logger.error(f"Failed to broadcast request update ({status}) for ID {updated_request.id}: {e}", exc_info=True)
+    
+    return updated_request
+
+async def _process_parallel_api_calls(
+    request: Request,
+    db_settings: Dict[str, Any],
+    parallel_requests: int,
+    total_attempts_limit: int
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    """
+    Manage parallel OpenAI API calls and return the first successful result.
+    Returns (first_valid_result, final_error_message)
+    """
+    active_tasks: Dict[int, Task] = {}
+    first_valid_result: Optional[Dict[str, Any]] = None
+    final_error_message: Optional[str] = None
+    total_attempts_made = 0
+    
+    while total_attempts_made < total_attempts_limit and first_valid_result is None:
+        # Launch new tasks if below parallel limit and total limit
+        while len(active_tasks) < parallel_requests and total_attempts_made < total_attempts_limit:
+            total_attempts_made += 1
+            attempt_num = total_attempts_made
+            logger.info(f"Request ID {request.id}: Launching attempt {attempt_num}/{total_attempts_limit} (Parallelism: {len(active_tasks)+1}/{parallel_requests})")
+            
+            task = asyncio.create_task(
+                openai_processor.analyze_code(request, db_settings),
+                name=f"analyze_code_req{request.id}_attempt{attempt_num}"
+            )
+            active_tasks[attempt_num] = task
+
+        if not active_tasks:
+            logger.warning(f"Request ID {request.id}: No active tasks to wait for, breaking loop.")
+            break
+
+        # Wait for at least one task to complete
+        logger.debug(f"Request ID {request.id}: Waiting for one of {len(active_tasks)} active tasks to complete.")
+        done, pending = await asyncio.wait(active_tasks.values(), return_when=asyncio.FIRST_COMPLETED)
+        logger.debug(f"Request ID {request.id}: {len(done)} task(s) completed.")
+
+        # Process completed tasks
+        for task in done:
+            attempt_num = next((num for num, t in active_tasks.items() if t == task), -1)
+            if attempt_num == -1:
+                logger.error(f"Request ID {request.id}: Completed task not found in active_tasks mapping!")
+                continue
+
+            del active_tasks[attempt_num]
+
+            try:
+                parsed_json, raw_response, exception_occurred = task.result()
+
+                if parsed_json is not None:
+                    # SUCCESS: Valid JSON received
+                    logger.info(f"Request ID {request.id}: Attempt {attempt_num} SUCCEEDED with valid JSON.")
+                    first_valid_result = parsed_json
+                    final_error_message = None
+                    
+                    # Cancel pending tasks
+                    if pending:
+                        logger.info(f"Request ID {request.id}: Cancelling {len(pending)} pending tasks.")
+                        for p_task in pending:
+                            p_task.cancel()
+                    break
+                    
+                elif exception_occurred is None:
+                    # FAILURE: API call OK, but invalid JSON
+                    final_error_message = "Failed to parse valid JSON response from OpenAI."
+                    logger.error(f"Request ID {request.id}: Attempt {attempt_num} FAILED (Invalid JSON). Raw response snippet: {raw_response[:100] if raw_response else 'N/A'}...")
+                    
+                else:
+                    # FAILURE: API call itself failed
+                    final_error_message = f"API call failed: {type(exception_occurred).__name__}"
+                    logger.error(f"Request ID {request.id}: Attempt {attempt_num} FAILED (API Error: {exception_occurred}).")
+
+            except CancelledError:
+                logger.info(f"Request ID {request.id}: Task for attempt {attempt_num} was cancelled.")
+            except Exception as e:
+                logger.exception(f"Request ID {request.id}: Unexpected error getting result for attempt {attempt_num}: {e}")
+                final_error_message = f"Internal error processing attempt {attempt_num}: {type(e).__name__}"
+
+        if first_valid_result is not None:
+            break
+
+    # Clean up any remaining tasks
+    if active_tasks:
+        logger.warning(f"Request ID {request.id}: Cleaning up {len(active_tasks)} remaining tasks.")
+        for task in active_tasks.values():
+            task.cancel()
+    
+    return first_valid_result, final_error_message
+
+async def _finalize_request_processing(
+    db: AsyncSession,
+    request: Request,
+    first_valid_result: Optional[Dict[str, Any]],
+    final_error_message: Optional[str],
+    total_attempts_limit: int
+) -> None:
+    """
+    Finalize request processing by updating the database and broadcasting results.
+    """
+    if first_valid_result is not None:
+        final_status = RequestStatus.COMPLETED
+        is_success = True
+        final_error_message = None
+        logger.info(f"Request ID {request.id}: Processing COMPLETED successfully.")
+    else:
+        final_status = RequestStatus.FAILED
+        is_success = False
+        if not final_error_message:
+            final_error_message = f"Failed to get valid JSON response after {total_attempts_limit} attempts."
+        logger.error(f"Request ID {request.id}: Processing FAILED. Reason: {final_error_message}")
+
+    update_data = {
+        "status": final_status,
+        "error_message": final_error_message,
+        "gpt_raw_response": first_valid_result,
+        "is_success": is_success,
+    }
+    await crud.crud_request.update(db, db_obj=request, obj_in=update_data)
+    logger.info(f"Updated Request ID: {request.id} in DB. Final status: {final_status}")
+
+    # Refresh and broadcast final update
+    await db.refresh(request)
+    try:
+        await ws_manager.broadcast_request_updated(
+            request_id=request.id,
+            status=request.status,
+            updated_at=request.updated_at,
+            error_message=request.error_message
+        )
+        logger.info(f"Broadcasted final request update for ID: {request.id}, Status: {final_status}")
+    except Exception as e:
+        logger.error(f"Failed to broadcast final request update for ID {request.id}: {e}", exc_info=True)
+
 # --- Background Task ---
 
 async def process_analysis_request(request_id: int):
     """
     Background task to process a single analysis request using parallel OpenAI calls.
-    Fetches request, loads settings, manages parallel API calls, updates DB.
+    Refactored into focused, testable functions for better maintainability.
     """
-    # Acquire the semaphore limiting concurrent analysis tasks
-    logger.info(f"Background task function entered for request ID: {request_id}. Attempting to acquire semaphore...")
+    logger.info(f"Starting analysis processing for request ID: {request_id}")
+    
     if analysis_task_semaphore is None:
-        # This should not happen if initialization is done correctly at startup
         logger.error(f"Analysis task semaphore not initialized for request ID: {request_id}. Skipping task.")
-        # Optionally mark request as failed here
         return
+        
     async with analysis_task_semaphore:
-        logger.info(f"Starting processing for request ID: {request_id}. Acquired analysis task semaphore.")
+        logger.info(f"Acquired semaphore for request ID: {request_id}")
         async with AsyncSessionLocal() as db:
-            request: Optional[Request] = None # Define request outside try block for use in finally/except
-            active_tasks: Dict[int, Task] = {} # Store active asyncio tasks {attempt_number: Task}
-            first_valid_result: Optional[Dict[str, Any]] = None
-            final_raw_response: Optional[str] = None
-            final_error_message: Optional[str] = None
-            total_attempts_made = 0
-            # parallel_requests and total_attempts_limit will be assigned after fetching settings
-
+            request: Optional[Request] = None
+            
             try:
-                # 1. Fetch the request data
+                # 1. Fetch and validate request
                 request = await crud.crud_request.get_or_404(db, id=request_id)
-                if not request: # Should be handled by get_or_404, but double-check
+                if not request:
                     logger.error(f"Request ID {request_id} not found for processing.")
                     return
+                    
                 if request.status not in [RequestStatus.QUEUED, RequestStatus.FAILED]:
-                    logger.warning(f"Request ID {request_id} is not in Queued or Failed status (current: {request.status}). Skipping processing.")
+                    logger.warning(f"Request ID {request_id} has invalid status: {request.status}. Skipping.")
                     return
 
-                # 2. Load dynamic settings from DB
-                db_settings = await crud_setting.get_all_settings_as_dict(db)
-                # Removed diagnostic log for db_settings
-                # Removed diagnostic log for db_settings
-
-                # Validate and get parallel processing settings with defaults
-                try:
-                    # Directly assign in try block
-                    parallel_requests = int(db_settings.get("parallel_openai_requests_per_prompt", '1')) # Use string default for consistency
-                    if parallel_requests < 1:
-                        logger.warning(f"Parsed parallel_requests ({parallel_requests}) is less than 1, setting to 1.")
-                        parallel_requests = 1
-                except (ValueError, TypeError):
-                    logger.warning(f"Invalid parallel_openai_requests_per_prompt setting ('{db_settings.get('parallel_openai_requests_per_prompt')}') in DB, using default 1.")
-                    # Explicitly assign default in except block
-                    parallel_requests = 1
-                try:
-                    # Directly assign in try block
-                    total_attempts_limit = int(db_settings.get("max_total_openai_attempts_per_prompt", '3')) # Use string default for consistency
-                    if total_attempts_limit < 1:
-                        logger.warning(f"Parsed total_attempts_limit ({total_attempts_limit}) is less than 1, setting to 1.")
-                        total_attempts_limit = 1
-                except (ValueError, TypeError):
-                    logger.warning(f"Invalid max_total_openai_attempts_per_prompt setting ('{db_settings.get('max_total_openai_attempts_per_prompt')}') in DB, using default 3.")
-                    # Explicitly assign default in except block
-                    total_attempts_limit = 3
-
-                # Store parsed values immediately to avoid potential async state issues
-                final_parallel_requests = parallel_requests
-                final_total_attempts_limit = total_attempts_limit
-                logger.info(f"Request ID {request_id}: Stored final settings: parallel={final_parallel_requests}, attempts={final_total_attempts_limit}") # Log stored values
-
-                # Ensure total attempts is at least parallel requests
-                if total_attempts_limit < parallel_requests:
-                    logger.warning(f"Total attempts limit ({total_attempts_limit}) is less than parallel requests ({parallel_requests}). Setting total attempts to {parallel_requests}.")
-                    total_attempts_limit = parallel_requests
-
-                # Log the task concurrency limit setting from DB for info
-                active_limit = get_analysis_task_limit() # Get limit set at startup
-                try:
-                    db_task_concurrency = int(db_settings.get("max_concurrent_analysis_tasks", active_limit))
-                    if db_task_concurrency != active_limit:
-                         logger.info(f"DB max_concurrent_analysis_tasks ({db_task_concurrency}) differs from active semaphore limit ({active_limit}). Active limit requires app restart to change.")
-                    else:
-                         logger.info(f"DB max_concurrent_analysis_tasks matches active semaphore limit ({active_limit}).")
-                except (ValueError, TypeError):
-                     logger.warning(f"Invalid max_concurrent_analysis_tasks setting in DB, active limit is {active_limit}.")
-
-
+                # 2. Load and validate settings
+                db_settings, parallel_requests, total_attempts_limit = await _validate_and_load_settings(db, request_id)
+                
                 # 3. Update status to Processing
-                await db.refresh(request) # Refresh before status check/update
-                if request.status not in [RequestStatus.QUEUED, RequestStatus.FAILED]:
-                     logger.warning(f"Request ID {request_id} status changed before processing could start (current: {request.status}). Skipping.")
-                     return
-                # Update status and refresh the object to get the latest state for broadcasting
-                updated_request_processing = await crud.crud_request.update_status(db, db_obj=request, status=RequestStatus.PROCESSING)
-                await db.refresh(updated_request_processing) # Refresh to ensure all fields are current
-
-                # Broadcast the update event (status change) via WebSocket
-                try:
-                    # Pass individual fields to the updated broadcast method
-                    await ws_manager.broadcast_request_updated(
-                        request_id=updated_request_processing.id,
-                        status=updated_request_processing.status,
-                        updated_at=updated_request_processing.updated_at,
-                        error_message=updated_request_processing.error_message
-                    )
-                    logger.info(f"Request ID {request_id} status updated to PROCESSING and broadcasted.")
-                except Exception as e:
-                    logger.error(f"Failed to broadcast request update (PROCESSING) for ID {request_id}: {e}", exc_info=True)
-
-                # 4. Manage Parallel OpenAI API Calls
-
-                # 4. Manage Parallel OpenAI API Calls
-                # Use the stored final values in the loop condition
-                while total_attempts_made < final_total_attempts_limit and first_valid_result is None:
-                    # Launch new tasks if below parallel limit and total limit
-                    # Use the stored final values for loop conditions
-                    while len(active_tasks) < final_parallel_requests and total_attempts_made < final_total_attempts_limit:
-                        total_attempts_made += 1
-                        attempt_num = total_attempts_made # Use 1-based index for logging
-                        # Use the stored final values in the loop and logging
-                        logger.info(f"Request ID {request_id}: Launching attempt {attempt_num}/{final_total_attempts_limit} (Parallelism: {len(active_tasks)+1}/{final_parallel_requests})")
-                        # Create the task for this attempt
-                        task = asyncio.create_task(
-                            openai_processor.analyze_code(request, db_settings),
-                            name=f"analyze_code_req{request_id}_attempt{attempt_num}"
-                        )
-                        active_tasks[attempt_num] = task
-
-                    if not active_tasks: # Should not happen if loop condition is met, but safety check
-                         logger.warning(f"Request ID {request_id}: No active tasks to wait for, breaking loop.")
-                         break
-
-                    # Wait for at least one task to complete
-                    logger.debug(f"Request ID {request_id}: Waiting for one of {len(active_tasks)} active tasks to complete.")
-                    done, pending = await asyncio.wait(active_tasks.values(), return_when=asyncio.FIRST_COMPLETED)
-                    logger.debug(f"Request ID {request_id}: {len(done)} task(s) completed.")
-
-                    # Process completed tasks
-                    for task in done:
-                        # Find the attempt number associated with this task
-                        attempt_num = -1
-                        for num, t in active_tasks.items():
-                            if t == task:
-                                attempt_num = num
-                                break
-                        if attempt_num == -1:
-                             logger.error(f"Request ID {request_id}: Completed task not found in active_tasks mapping!")
-                             continue # Should not happen
-
-                        del active_tasks[attempt_num] # Remove from active tasks
-
-                        try:
-                            parsed_json, raw_response, exception_occurred = task.result()
-                            # final_raw_response = raw_response # REMOVED: We store the parsed dict directly
-
-                            if parsed_json is not None:
-                                # SUCCESS: Valid JSON received
-                                logger.info(f"Request ID {request_id}: Attempt {attempt_num} SUCCEEDED with valid JSON. Storing raw dictionary.")
-
-                                # --- REMOVED: Newline normalization logic ---
-
-                                first_valid_result = parsed_json # Store the successfully parsed dictionary
-                                final_error_message = None
-                                # logger.info(f"Request ID {request_id}: Attempt {attempt_num} SUCCEEDED with valid JSON.") # Original log moved up
-                                # Cancel pending tasks
-                                if pending:
-                                    logger.info(f"Request ID {request_id}: Cancelling {len(pending)} pending tasks.")
-                                    for p_task in pending:
-                                        p_task.cancel()
-                                    # Optionally await cancellation, though not strictly necessary here
-                                    # await asyncio.gather(*pending, return_exceptions=True)
-                                break # Exit the main while loop
-
-                            elif exception_occurred is None:
-                                # FAILURE: API call OK, but invalid JSON
-                                final_error_message = "Failed to parse valid JSON response from OpenAI."
-                                logger.error(f"Request ID {request_id}: Attempt {attempt_num} FAILED (Invalid JSON). Raw response snippet: {raw_response[:100] if raw_response else 'N/A'}...")
-                                # Continue loop to potentially launch replacement task
-
-                            else:
-                                # FAILURE: API call itself failed
-                                final_error_message = f"API call failed: {type(exception_occurred).__name__}"
-                                logger.error(f"Request ID {request_id}: Attempt {attempt_num} FAILED (API Error: {exception_occurred}).")
-                                # Continue loop to potentially launch replacement task
-
-                        except CancelledError:
-                             logger.info(f"Request ID {request_id}: Task for attempt {attempt_num} was cancelled.")
-                             # If this task was cancelled because another succeeded, first_valid_result should be set
-                        except Exception as e:
-                             logger.exception(f"Request ID {request_id}: Unexpected error getting result for attempt {attempt_num}: {e}")
-                             final_error_message = f"Internal error processing attempt {attempt_num}: {type(e).__name__}"
-                             # Continue loop to potentially launch replacement task
-
-                    if first_valid_result is not None:
-                        break # Exit while loop if success condition met
-
-                # End of while loop
-
-                # 5. Determine Final Status and Update DB
-                if first_valid_result is not None:
-                    final_status = RequestStatus.COMPLETED
-                    is_success = True
-                    final_error_message = None # Clear any previous error
-                    logger.info(f"Request ID {request_id}: Processing COMPLETED successfully.")
-                else:
-                    final_status = RequestStatus.FAILED
-                    is_success = False
-                    if not final_error_message: # If no specific error was captured, set a generic one
-                         final_error_message = f"Failed to get valid JSON response after {final_total_attempts_limit} attempts."
-                    logger.error(f"Request ID {request_id}: Processing FAILED. Reason: {final_error_message}")
-
-                update_data = {
-                    "status": final_status,
-                    "error_message": final_error_message,
-                    "gpt_raw_response": first_valid_result, # Store the parsed dictionary directly into JSONB
-                    "is_success": is_success,
-                }
-                await crud.crud_request.update(db, db_obj=request, obj_in=update_data)
-                logger.info(f"Updated Request ID: {request.id} in DB. Final status: {final_status}")
-
-                # Refresh the request object after the final update to get complete data
                 await db.refresh(request)
+                if request.status not in [RequestStatus.QUEUED, RequestStatus.FAILED]:
+                    logger.warning(f"Request ID {request_id} status changed before processing: {request.status}")
+                    return
+                    
+                await _update_request_status(db, request, RequestStatus.PROCESSING)
 
-                # Send final WebSocket update using broadcast_request_updated
-                try:
-                    # Pass individual fields to the updated broadcast method
-                    await ws_manager.broadcast_request_updated(
-                        request_id=request.id,
-                        status=request.status, # Use the final status from the refreshed request object
-                        updated_at=request.updated_at, # Use the final timestamp
-                        error_message=request.error_message # Use the final error message
-                    )
-                    logger.info(f"Broadcasted final request update for ID: {request.id}, Status: {final_status}")
-                except Exception as e:
-                    logger.error(f"Failed to broadcast final request update for ID {request.id}: {e}", exc_info=True)
+                # 4. Process parallel API calls
+                first_valid_result, final_error_message = await _process_parallel_api_calls(
+                    request, db_settings, parallel_requests, total_attempts_limit
+                )
+
+                # 5. Finalize processing
+                await _finalize_request_processing(
+                    db, request, first_valid_result, final_error_message, total_attempts_limit
+                )
 
             except Exception as e:
-                logger.exception(f"Critical error during background processing task for request ID {request_id}: {e}")
-                # Attempt to mark the request as Failed if it exists
-                try:
-                    if request and db.is_active:
-                        # Ensure request state is current before potentially updating
-                        await db.refresh(request)
-                        if request.status == RequestStatus.PROCESSING: # Only update if it was processing
-                             fail_msg = f"Critical background processing error: {type(e).__name__}"
-                             await crud.crud_request.update_status(
-                                 db,
-                                 db_obj=request,
-                                 status=RequestStatus.FAILED,
-                                 error_message=fail_msg
-                             )
-                             await db.commit() # Commit the failure status
-                             logger.info(f"Marked request {request_id} as Failed due to critical task error.")
-                             # Refresh the request object after the failure update
-                             await db.refresh(request)
-                             # Broadcast the failure update
-                             try:
-                                 # Pass individual fields to the updated broadcast method
-                                 await ws_manager.broadcast_request_updated(
-                                     request_id=request.id,
-                                     status=request.status, # Should be FAILED
-                                     updated_at=request.updated_at,
-                                     error_message=request.error_message
-                                 )
-                                 logger.info(f"Broadcasted request update (FAILED due to critical error) for ID: {request_id}")
-                             except Exception as broadcast_e:
-                                 logger.error(f"Failed to broadcast request failure update for ID {request_id} after critical error: {broadcast_e}", exc_info=True)
-                        else:
-                             logger.warning(f"Request {request_id} was not in PROCESSING state ({request.status}) during critical error handling.")
-                    else:
-                         logger.error(f"Could not mark request {request_id} as failed after critical error (request object unavailable or session closed).")
-                except Exception as db_e:
-                    logger.error(f"Failed to update request status to Failed after critical error for request ID {request_id}: {db_e}")
-            finally:
-                 # Ensure any remaining tasks are cancelled if the main loop exits unexpectedly
-                 if active_tasks:
-                     logger.warning(f"Request ID {request_id}: Cleaning up {len(active_tasks)} tasks due to unexpected exit.")
-                     for task in active_tasks.values():
-                         task.cancel()
-                     # await asyncio.gather(*active_tasks.values(), return_exceptions=True) # Optional: wait for cancellation
+                logger.exception(f"Critical error processing request ID {request_id}: {e}")
+                await _handle_critical_error(db, request, request_id, e)
+                
+        logger.info(f"Finished processing request ID: {request_id}")
 
-        logger.info(f"Finished processing for request ID: {request_id}. Releasing analysis task semaphore.")
-        # Semaphore released automatically by 'async with'
+async def _handle_critical_error(
+    db: AsyncSession, 
+    request: Optional[Request], 
+    request_id: int, 
+    error: Exception
+) -> None:
+    """Handle critical errors during request processing."""
+    try:
+        if request and db.is_active:
+            await db.refresh(request)
+            if request.status == RequestStatus.PROCESSING:
+                fail_msg = f"Critical processing error: {type(error).__name__}"
+                await crud.crud_request.update_status(
+                    db, db_obj=request, status=RequestStatus.FAILED, error_message=fail_msg
+                )
+                await db.commit()
+                logger.info(f"Marked request {request_id} as Failed due to critical error.")
+                
+                # Broadcast failure
+                await db.refresh(request)
+                try:
+                    await ws_manager.broadcast_request_updated(
+                        request_id=request.id,
+                        status=request.status,
+                        updated_at=request.updated_at,
+                        error_message=request.error_message
+                    )
+                except Exception as broadcast_e:
+                    logger.error(f"Failed to broadcast failure for ID {request_id}: {broadcast_e}")
+    except Exception as db_e:
+        logger.error(f"Failed to handle critical error for request ID {request_id}: {db_e}")

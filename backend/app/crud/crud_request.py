@@ -76,6 +76,26 @@ class CRUDRequest(CRUDBase[Request, RequestCreate, RequestUpdate]):
 
         return await super().update(db, db_obj=db_obj, obj_in=update_data)
 
+    async def create_with_images(
+        self, db: AsyncSession, *, user_prompt: Optional[str], image_references: List[str]
+    ) -> Request:
+        """
+        Create a new request with user prompt and image references in a single database operation.
+        Optimized to avoid redundant database calls.
+        """
+        # Create request object with all data
+        db_obj = Request(
+            user_prompt=user_prompt,
+            image_references=image_references,
+            status=RequestStatus.QUEUED
+        )
+        
+        db.add(db_obj)
+        await db.flush()  # Flush to get the ID without committing
+        await db.refresh(db_obj)  # Get the auto-generated fields
+        
+        return db_obj
+
     # Removed set_current_version as version concept is removed
 
 

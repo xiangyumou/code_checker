@@ -127,18 +127,14 @@ class RequestService:
                 # before the error occurred. More robust cleanup might be needed if partial success is unacceptable.
                 raise # Re-raise the original error (IOError or other)
 
-        # 2. Create Request object in DB
-        request_create_data = schemas.RequestCreate(user_prompt=user_prompt) # images_base64 removed
+        # 2. Create Request object in DB with image references in one operation
         try:
-            # Assuming crud_request.create handles basic creation
-            # We'll add image references separately or modify CRUD later if needed
-            # For now, let's create then update. Consider a dedicated CRUD method later.
-            db_request = await crud.crud_request.create(db=self.db, obj_in=request_create_data)
-            if image_references:
-                db_request.image_references = image_references
-                self.db.add(db_request) # Add again to session to mark for update
-                await self.db.flush() # Flush to ensure the update is pending before queueing/broadcasting
-                await self.db.refresh(db_request, attribute_names=['image_references']) # Refresh to get updated refs if needed
+            # Create request with all data including image references in a single operation
+            db_request = await crud.crud_request.create_with_images(
+                db=self.db, 
+                user_prompt=user_prompt,
+                image_references=image_references
+            )
             logger.info(f"Created request record with ID: {db_request.id}")
         except Exception as e:
             logger.error(f"Database error creating request: {e}", exc_info=True)
@@ -237,22 +233,13 @@ class RequestService:
         # 1. Get the original request data (raises 404 if not found)
         original_request = await crud.crud_request.get_or_404(self.db, id=original_request_id)
 
-        # 2. Prepare data for the new request
-        new_request_data = schemas.RequestCreate(
-            user_prompt=original_request.user_prompt,
-            # image_references are copied after creation
-        )
-
-        # 3. Create the new request in the database
+        # 2. Create the new request in the database with all data in one operation
         try:
-            new_db_request = await crud.crud_request.create(db=self.db, obj_in=new_request_data)
-            # Copy image references from the original request
-            if original_request.image_references:
-                new_db_request.image_references = original_request.image_references
-                self.db.add(new_db_request) # Mark for update
-                await self.db.flush() # Ensure update is flushed before proceeding
-                # Refreshing here might not be strictly necessary unless needed immediately
-                # await self.db.refresh(new_db_request, attribute_names=['image_references'])
+            new_db_request = await crud.crud_request.create_with_images(
+                db=self.db, 
+                user_prompt=original_request.user_prompt,
+                image_references=original_request.image_references or []
+            )
             logger.info(f"Regenerated request record created with ID: {new_db_request.id}")
         except Exception as e:
             logger.error(f"Database error creating regenerated request: {e}", exc_info=True)
