@@ -14,18 +14,27 @@ from app.schemas.token import TokenPayload
 from app.services.request_service import RequestService # Import the service
 from app.websockets.connection_manager import ConnectionManager # Import ConnectionManager
 
-# OAuth2PasswordBearer scheme pointing to the login endpoint (will be created later)
+# OAuth2PasswordBearer scheme pointing to the login endpoint
+# auto_error=False allows the token to be optional
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token",
+    auto_error=False
 )
 
 async def get_current_user(
-    db: AsyncSession = Depends(get_db), token: str = Depends(reusable_oauth2)
+    db: AsyncSession = Depends(get_db), token: Optional[str] = Depends(reusable_oauth2)
 ) -> AdminUser:
     """
     Dependency to get the current user from the token.
     Raises HTTPException if token is invalid or user not found.
     """
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
