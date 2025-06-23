@@ -49,7 +49,7 @@ const ThemeSwitcher: React.FC = () => {
   return (
     <Dropdown menu={{ items, onClick: handleMenuClick, selectedKeys: [themeMode] }} placement="bottomRight">
       {/* Use a Button for better styling and interaction */}
-      <Button type="text" icon={<CurrentIcon />} shape="circle" aria-label={t('themeSwitcher.toggleAriaLabel')} />
+      <Button type="text" icon={<CurrentIcon />} shape="circle" aria-label={t('themeSwitcher.toggleAriaLabel')} style={{ outline: 'none' }} />
        {/*
          Alternatively, show text alongside icon:
          <Button type="text" icon={<CurrentIcon />}>
