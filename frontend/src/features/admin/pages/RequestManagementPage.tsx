@@ -20,7 +20,7 @@ import { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/i
 // Removed Option = Select;
 
 // Define possible statuses for filtering
-const STATUS_OPTIONS: RequestStatus[] = ['Queued', 'Processing', 'Completed', 'Failed'];
+const STATUS_OPTIONS: RequestStatus[] = ['Pending', 'Processing', 'Completed', 'Failed'];
 
 // Define props interface
 interface RequestManagementPageProps {
@@ -152,14 +152,14 @@ const RequestManagementPage: React.FC<RequestManagementPageProps> = React.memo((
             title: t('requestManagement.status'),
             dataIndex: 'status',
             key: 'status',
-            filters: STATUS_OPTIONS.map(status => ({ text: status, value: status })),
+            filters: STATUS_OPTIONS.map(status => ({ text: t(`requestStatus.${status}`), value: status })),
             filteredValue: filters.status || null,
             render: (status: RequestStatus) => {
                 let color = 'default';
                 if (status === 'Completed') color = 'success';
                 else if (status === 'Processing') color = 'processing';
                 else if (status === 'Failed') color = 'error';
-                return <Tag color={color} icon={status === 'Processing' ? <SyncOutlined spin /> : undefined}>{status}</Tag>;
+                return <Tag color={color} icon={status === 'Processing' ? <SyncOutlined spin /> : undefined}>{t(`requestStatus.${status}`)}</Tag>;
             },
             width: 120,
         },

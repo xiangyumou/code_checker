@@ -2,6 +2,7 @@ import React, { useMemo } from 'react'; // Added useMemo
 import { useOutletContext } from 'react-router-dom'; // Import useOutletContext
 import { Card, Typography, Row, Col, Statistic, Spin } from 'antd'; // Added Spin
 import { DatabaseOutlined, SyncOutlined, CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons'; // Added CheckCircleOutlined
+import { useTranslation } from 'react-i18next';
 import { AnalysisRequest } from '../../../types/index'; // Import type
 
 const { Title } = Typography;
@@ -15,6 +16,7 @@ interface DashboardContext {
 
 
 const DashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const context = useOutletContext<DashboardContext>();
 
   // Calculate stats based on the requests from context
@@ -34,19 +36,19 @@ const DashboardPage: React.FC = () => {
   if (!context || context.loadingRequests) {
       return (
           <div style={{ textAlign: 'center', padding: '50px 0' }}>
-              <Spin tip="加载数据中..." size="large" />
+              <Spin tip={t('loading')} size="large" />
           </div>
       );
   }
 
   return (
     <div>
-      <Title level={2} style={{ marginBottom: '24px' }}>仪表盘</Title>
+      <Title level={2} style={{ marginBottom: '24px' }}>{t('dashboard.title')}</Title>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card hoverable> {/* Added hoverable */}
             <Statistic
-              title="总请求数"
+              title={t('dashboard.totalRequests')}
               value={stats.total}
               prefix={<DatabaseOutlined />}
             />
@@ -55,7 +57,7 @@ const DashboardPage: React.FC = () => {
          <Col xs={24} sm={12} md={8} lg={6}>
           <Card hoverable>
             <Statistic
-              title="已完成"
+              title={t('dashboard.completed')}
               value={stats.completed}
               valueStyle={{ color: '#52c41a' }} // Green for completed
               prefix={<CheckCircleOutlined />}
@@ -65,7 +67,7 @@ const DashboardPage: React.FC = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card hoverable>
             <Statistic
-              title="处理中"
+              title={t('dashboard.processing')}
               value={stats.processing}
               valueStyle={{ color: '#1677ff' }} // Use theme primary color
               prefix={<SyncOutlined spin />}
@@ -75,7 +77,7 @@ const DashboardPage: React.FC = () => {
         <Col xs={24} sm={12} md={8} lg={6}>
           <Card hoverable>
             <Statistic
-              title="失败数"
+              title={t('dashboard.failed')}
               value={stats.failed}
               valueStyle={{ color: '#ff4d4f' }} // Use theme error color
               prefix={<CloseCircleOutlined />}

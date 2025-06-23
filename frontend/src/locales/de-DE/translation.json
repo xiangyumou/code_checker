@@ -13,10 +13,10 @@
     "successMessage": "Anfrage erfolgreich gesendet!",
     "errorMessage": "Senden der Anfrage fehlgeschlagen.",
     "validation": {
-        "imageFormatError": "Sie können nur JPG/PNG-Dateien hochladen!",
-        "imageSizeError": "Bild muss kleiner als 2MB sein!",
-        "maxImagesWarning": "Sie können maximal {{count}} Bilder hochladen.",
-        "emptySubmissionError": "Bitte geben Sie eine Beschreibung/Code ein oder fügen Sie ein Bild hinzu!"
+      "imageFormatError": "Sie können nur JPG/PNG-Dateien hochladen!",
+      "imageSizeError": "Bild muss kleiner als 2MB sein!",
+      "maxImagesWarning": "Sie können maximal {{count}} Bilder hochladen.",
+      "emptySubmissionError": "Bitte geben Sie eine Beschreibung/Code ein oder fügen Sie ein Bild hinzu!"
     },
     "imageProcessingError": "Verarbeitung des Bildes \"{{name}}\" fehlgeschlagen.",
     "pasteDetected": "Bildeinfügung erkannt, wird verarbeitet...",
@@ -56,12 +56,14 @@
     "analysisFailed": "Analyse fehlgeschlagen",
     "unknownStatus": "Unbekannter Status",
     "parsingErrorInvalidObject": "Geparste Antwort ist kein gültiges Objekt.",
+    "parsingErrorInvalidType": "Antworttyp ist ungültig oder unerwartet.",
     "parsingErrorUnknown": "JSON-Antwort konnte nicht geparst werden.",
     "parsingErrorGeneral": "Fehler beim Parsen der Analyseergebnisse: {{error}}",
     "parsingErrorEmptyResponse": "Analyse erfolgreich, aber Antwortinhalt ist leer.",
     "analysisCompletedButFailed": "Analyse abgeschlossen, aber als fehlgeschlagen markiert, keine detaillierten Ergebnisse.",
     "regenerateSuccess": "Anfrage #{{id}} wurde zur erneuten Analyse in die Warteschlange gestellt.",
     "regenerateError": "Auslösen der erneuten Analyse fehlgeschlagen.",
+    "regenerate": "Regenerieren",
     "noData": "Keine Anfragedaten",
     "problemLoadError": "Fehler beim Laden der Problemdetails: {{error}}",
     "parsingResponse": "Antwort wird analysiert...",
@@ -78,17 +80,24 @@
     "notes": "Hinweise",
     "diffLoadError": "Fehler beim Laden des Code-Unterschieds: {{error}}",
     "diffLoadErrorEmpty": "Code-Unterschied konnte nicht geladen werden: {{error}}",
+    "diffError": "Fehler beim Generieren des Unterschieds",
+    "diffMissingSource": "Fehlender Quellcode für Unterschied",
     "generatingDiff": "Code-Unterschied wird generiert...",
     "diffMissingBoth": "Unterschied kann nicht generiert werden: Fehlender Original- und geänderter Code.",
     "noModifiedCode": "Geänderter Code nicht in Analyseergebnissen gefunden.",
+    "noDiffAvailable": "Kein Unterschied verfügbar",
     "diffGeneralError": "Keine Codeänderungen erkannt oder Fehler beim Generieren des Unterschieds.",
     "analysisLoadError": "Fehler beim Laden der Änderungsanalyse: {{error}}",
     "analysisLoadErrorEmpty": "Änderungsanalyse konnte nicht geladen werden: {{error}}",
     "loadingAnalysis": "Code wird hervorgehoben...",
+    "loading": "Wird geladen...",
+    "loadingDetails": "Details werden geladen...",
     "noAnalysisDetails": "Detaillierte Analyse der Änderungspunkte nicht in Ergebnissen gefunden.",
     "modificationPoint": "Änderungspunkt {{index}}",
+    "modificationAnalysis": "Änderungsanalyse",
     "originalSnippet": "Originalausschnitt",
     "modifiedSnippet": "Geänderter Ausschnitt",
+    "modifiedCode": "Geänderter Code",
     "explanation": "Erläuterung",
     "sourceCodeLoadError": "Fehler beim Laden des Quellcodes: {{error}}",
     "sourceCodeLoadErrorEmpty": "Quellcode konnte nicht geladen werden: {{error}}",
@@ -96,41 +105,50 @@
     "copyCodeErrorNoCode": "Kein Code zum Kopieren vorhanden.",
     "copyCodeSuccess": "Quellcode in die Zwischenablage kopiert.",
     "copyCodeErrorFailed": "Kopieren des Quellcodes fehlgeschlagen.",
+    "copyCode": "Code kopieren",
     "copyCodeTooltip": "Quellcode kopieren",
     "drawerTitleWithId": "Analyseergebnisse - Anfrage #{{id}}",
     "drawerTitle": "Analyseergebnisse",
     "regeneratingButton": "Wird erstellt...",
     "regenerateButton": "Neue Analyse erstellen",
     "originalSubmission": "Ursprüngliche Einreichung",
+    "originalSubmissionPrompt": "Ursprünglicher Einreichungstext",
+    "originalSubmissionImages": "Ursprüngliche Einreichungsbilder",
     "userPrompt": "Benutzereingabe (Text/Code)",
     "noUserPrompt": "Keine Texteingabe",
+    "noPromptProvided": "Kein Text bereitgestellt",
     "submittedImages": "Eingereichte Bilder ({{count}})",
     "submittedImageAlt": "Eingereichtes Bild {{index}}",
     "analysisResults": "Analyseergebnisse",
     "problemDetails": "Problemdetails",
+    "problemAnalysis": "Problemanalyse",
+    "noProblemAnalysis": "Keine Problemanalyse verfügbar",
     "sourceCode": "Quellcode",
     "codeDiff": "Code-Unterschied",
     "analysisDetails": "Änderungsanalyse",
     "noDataSelected": "Keine Anfrage ausgewählt oder keine Daten verfügbar",
     "previewImage": "Vorschaubild",
-    "noImageSubmitted": "Kein Bild eingereicht"
+    "noImageSubmitted": "Kein Bild eingereicht",
+    "requestId": "Anfrage-ID",
+    "submittedAt": "Eingereicht am",
+    "lastUpdated": "Zuletzt aktualisiert"
   },
   "initializationPage": {
     "initializing": "Initialisierung...",
     "errorMessage": "Initialisierung fehlgeschlagen. Bitte überprüfen Sie die Backend-Verbindung und aktualisieren Sie.",
     "steps": {
-        "adminAccount": "Administratorkonto",
-        "apiConfig": "API-Konfiguration",
-        "advancedConfig": "Erweiterte Konfiguration"
+      "adminAccount": "Administratorkonto",
+      "apiConfig": "API-Konfiguration",
+      "advancedConfig": "Erweiterte Konfiguration"
     },
     "validation": {
-        "passwordMismatch": "Die beiden eingegebenen Passwörter stimmen nicht überein!",
-        "usernameRequired": "Bitte geben Sie Ihren Administrator-Benutzernamen ein!",
-        "passwordRequired": "Bitte geben Sie Ihr Administrator-Passwort ein!",
-        "confirmPasswordRequired": "Bitte bestätigen Sie Ihr Passwort!",
-        "apiKeyRequired": "Bitte geben Sie Ihren OpenAI API-Schlüssel ein!",
-        "systemPromptRequired": "Bitte geben Sie den System-Prompt ein!",
-        "numberRequired": "Bitte geben Sie eine ganze Zahl größer als 0 ein!"
+      "passwordMismatch": "Die beiden eingegebenen Passwörter stimmen nicht überein!",
+      "usernameRequired": "Bitte geben Sie Ihren Administrator-Benutzernamen ein!",
+      "passwordRequired": "Bitte geben Sie Ihr Administrator-Passwort ein!",
+      "confirmPasswordRequired": "Bitte bestätigen Sie Ihr Passwort!",
+      "apiKeyRequired": "Bitte geben Sie Ihren OpenAI API-Schlüssel ein!",
+      "systemPromptRequired": "Bitte geben Sie den System-Prompt ein!",
+      "numberRequired": "Bitte geben Sie eine ganze Zahl größer als 0 ein!"
     },
     "successMessage": "Anwendung erfolgreich initialisiert!",
     "errorMessageDefault": "Initialisierung fehlgeschlagen. Bitte überprüfen Sie Ihre Eingaben und versuchen Sie es erneut.",
@@ -165,9 +183,9 @@
     "timeoutLabel": "Anfrage-Timeout (Sekunden)",
     "timeoutTooltip": "Die Timeout-Dauer (in Sekunden) für die Verarbeitung einer einzelnen Anfrage.",
     "buttons": {
-        "prev": "Zurück",
-        "next": "Weiter",
-        "finish": "Abschließen & App initialisieren"
+      "prev": "Zurück",
+      "next": "Weiter",
+      "finish": "Abschließen & App initialisieren"
     }
   },
   "app": {
@@ -187,7 +205,9 @@
     "footer": "Code-Analyse-Tool ©{{year}} | Powered by Ant Design"
   },
   "common": {
-      "close": "Schließen"
+    "close": "Schließen",
+    "yes": "Ja",
+    "no": "Nein"
   },
   "themeSwitcher": {
     "light": "Heller Modus",
@@ -207,6 +227,12 @@
     "batchActionError": "Batch-Aktion fehlgeschlagen.",
     "selectRequestsWarning": "Bitte wählen Sie Anfragen zum {{action}} aus.",
     "batchActionInitiated": "Batch-{{action}} für {{count}} Anfragen eingeleitet."
+  },
+  "adminLayout": {
+    "websocketConnected": "Echtzeit-Updates verbunden",
+    "websocketReconnectFailed": "Verbindung zu Echtzeit-Updates nach mehreren Versuchen fehlgeschlagen",
+    "loadDetailsError": "Details für Anfrage #{{id}} nach Update nicht aktualisiert",
+    "refreshDetailsError": "Aktualisierung der vollständigen Details für Anfrage #{{id}} nach Update fehlgeschlagen."
   },
   "adminPanel": {
     "title": "Admin-Panel"
@@ -234,7 +260,13 @@
   "pagination": {
     "showTotal": "{{from}}-{{to}} von {{total}} Elementen"
   },
-  "dashboard": "Dashboard",
+  "dashboard": {
+    "title": "Dashboard",
+    "totalRequests": "Gesamtanfragen",
+    "completed": "Abgeschlossen",
+    "processing": "In Bearbeitung",
+    "failed": "Fehlgeschlagen"
+  },
   "logs": "Logs",
   "logout": "Abmelden",
   "refresh": "Aktualisieren",
@@ -247,12 +279,102 @@
   "cancel": "Abbrechen",
   "settingsPage": {
     "title": "Einstellungen",
-    "appAndProfile": "App- und Profilweinstellungen"
+    "appAndProfile": "App- und Profilweinstellungen",
+    "appSettingsSaveSuccess": "App-Einstellungen erfolgreich gespeichert!",
+    "noAppSettingsChanges": "Keine Änderungen in den App-Einstellungen",
+    "loadingConfig": "Konfiguration wird geladen...",
+    "loadingProfile": "Profil wird geladen...",
+    "noProfileChanges": "Keine Änderungen im Profil",
+    "profileUpdateSuccess": "Profil erfolgreich aktualisiert!",
+    "profileUpdateSuccessUsernameChanged": "Profil aktualisiert. Sie müssen sich mit Ihrem neuen Benutzernamen erneut anmelden.",
+    "profileUpdateErrorNoUser": "Profil konnte nicht aktualisiert werden: Benutzer nicht gefunden",
+    "profileUsernameLabel": "Benutzername",
+    "profileUsernameRequired": "Benutzername ist erforderlich",
+    "profileUsernameTooltip": "Der eindeutige Benutzername für die Anmeldung am Admin-Panel.",
+    "profileNewPasswordLabel": "Neues Passwort",
+    "profileNewPasswordPlaceholder": "Neues Passwort eingeben",
+    "profileNewPasswordTooltip": "Leer lassen, um das aktuelle Passwort beizubehalten. Muss mindestens 8 Zeichen lang sein.",
+    "passwordPlaceholder": "Neues Passwort zur Änderung eingeben",
+    "passwordMinLengthError": "Das Passwort muss mindestens 8 Zeichen lang sein",
+    "validationRequired": "Dieses Feld ist erforderlich",
+    "restartNoteTitle": "Neustart erforderlich",
+    "restartNoteDescription": "Änderungen an den App-Einstellungen werden nach einem Neustart des Dienstes wirksam.",
+    "saveAppSettingsButton": "App-Einstellungen speichern",
+    "saveProfileButton": "Profil speichern",
+    "tabApp": "App-Einstellungen",
+    "tabProfile": "Profil",
+    "definitions": {
+      "openai_api_key": {
+        "label": "OpenAI API-Schlüssel",
+        "tooltip": "Ihr API-Schlüssel für OpenAI. Halten Sie diesen geheim."
+      },
+      "openai_base_url": {
+        "label": "OpenAI Basis-URL",
+        "tooltip": "Die URL für einen Proxy oder einen alternativen OpenAI-API-Endpunkt."
+      },
+      "openai_model": {
+        "label": "OpenAI-Modell",
+        "tooltip": "Das für die Analyse zu verwendende OpenAI-Modell, z. B. 'gpt-4-turbo'."
+      },
+      "system_prompt": {
+        "label": "System-Prompt",
+        "tooltip": "Die Anweisung auf Systemebene, die beim Senden von Prompts an die KI zur Analyse verwendet wird."
+      },
+      "max_concurrent_analysis_tasks": {
+        "label": "Max. gleichzeitige Analyseaufgaben",
+        "tooltip": "Die maximale Anzahl von Analyseanfragen, die das System gleichzeitig verarbeiten kann."
+      },
+      "parallel_openai_requests_per_prompt": {
+        "label": "Parallele OpenAI-Anfragen pro Prompt",
+        "tooltip": "Wie viele parallele Anfragen für eine einzelne Analyseaufgabe an OpenAI gesendet werden sollen."
+      },
+      "max_total_openai_attempts_per_prompt": {
+        "label": "Max. Gesamtanzahl der OpenAI-Versuche pro Prompt",
+        "tooltip": "Die maximale Gesamtzahl der Versuche, die OpenAI-API für eine einzelne Analyseaufgabe aufzurufen, bevor aufgegeben wird."
+      },
+      "request_timeout_seconds": {
+        "label": "Anfrage-Timeout (Sekunden)",
+        "tooltip": "Das Zeitlimit in Sekunden für eine einzelne OpenAI-API-Anfrage."
+      }
+    }
   },
-  "adminLayout": {
-    "websocketConnected": "Echtzeit-Updates verbunden",
-    "websocketReconnectFailed": "Verbindung zu Echtzeit-Updates nach mehreren Versuchen fehlgeschlagen",
-    "refreshDetailsError": "Fehler beim Aktualisieren der vollständigen Details für Anfrage #{{id}} nach Update.",
-    "loadDetailsError": "Fehler beim Laden der Details für Anfrage #{{id}}."
+  "admin": {
+    "logs": {
+      "title": "Protokollanzeige",
+      "level": "Stufe",
+      "timestamp": "Zeitstempel",
+      "source": "Quelle",
+      "message": "Nachricht",
+      "filterByLevel": "Nach Stufe filtern",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "searchPlaceholder": "Protokollnachrichten durchsuchen...",
+      "refresh": "Aktualisieren",
+      "clearAll": "Alle löschen",
+      "clearConfirmTitle": "Löschen der Protokolle bestätigen?",
+      "clearConfirmDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Protokolle werden dauerhaft gelöscht.",
+      "totalCount": "Gesamt: {{count}}"
+    },
+    "settings": {
+      "fetchError": "Abrufen der Einstellungen fehlgeschlagen",
+      "updateError": "Aktualisierung der Einstellungen fehlgeschlagen",
+      "updateSuccess": "Einstellungen erfolgreich aktualisiert"
+    }
+  },
+  "loginPage": {
+    "title": "Admin-Anmeldung",
+    "login": "Anmelden",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "usernameRequired": "Benutzername ist erforderlich",
+    "passwordRequired": "Passwort ist erforderlich",
+    "errorMessage": "Ungültiger Benutzername oder Passwort"
+  },
+  "loading": "Wird geladen...",
+  "requestStatus": {
+    "Completed": "Abgeschlossen",
+    "Processing": "In Bearbeitung",
+    "Failed": "Fehlgeschlagen",
+    "Pending": "Ausstehend"
   }
 }

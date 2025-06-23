@@ -13,10 +13,10 @@
     "successMessage": "Request submitted successfully!",
     "errorMessage": "Failed to submit request.",
     "validation": {
-        "imageFormatError": "You can only upload JPG/PNG file!",
-        "imageSizeError": "Image must smaller than 2MB!",
-        "maxImagesWarning": "You can only upload a maximum of {{count}} images.",
-        "emptySubmissionError": "Please enter description/code or add an image!"
+      "imageFormatError": "You can only upload JPG/PNG file!",
+      "imageSizeError": "Image must smaller than 2MB!",
+      "maxImagesWarning": "You can only upload a maximum of {{count}} images.",
+      "emptySubmissionError": "Please enter description/code or add an image!"
     },
     "imageProcessingError": "Failed to process image \"{{name}}\".",
     "pasteDetected": "Image paste detected, processing...",
@@ -56,12 +56,14 @@
     "analysisFailed": "Analysis failed",
     "unknownStatus": "Unknown Status",
     "parsingErrorInvalidObject": "Parsed response is not a valid object.",
+    "parsingErrorInvalidType": "Response type is invalid or unexpected.",
     "parsingErrorUnknown": "Could not parse JSON response.",
     "parsingErrorGeneral": "Error parsing analysis results: {{error}}",
     "parsingErrorEmptyResponse": "Analysis successful, but response content is empty.",
     "analysisCompletedButFailed": "Analysis completed but marked as failed, no detailed results.",
     "regenerateSuccess": "Request #{{id}} has been re-queued for analysis.",
     "regenerateError": "Failed to trigger re-analysis.",
+    "regenerate": "Regenerate",
     "noData": "No request data",
     "problemLoadError": "Error loading problem details: {{error}}",
     "parsingResponse": "Parsing response...",
@@ -78,17 +80,24 @@
     "notes": "Notes",
     "diffLoadError": "Error loading code diff: {{error}}",
     "diffLoadErrorEmpty": "Could not load code diff: {{error}}",
+    "diffError": "Error generating diff",
+    "diffMissingSource": "Missing source code for diff",
     "generatingDiff": "Generating code diff...",
     "diffMissingBoth": "Cannot generate diff: Missing original and modified code.",
     "noModifiedCode": "Modified code not found in analysis results.",
+    "noDiffAvailable": "No diff available",
     "diffGeneralError": "No code changes detected or error generating diff.",
     "analysisLoadError": "Error loading modification analysis: {{error}}",
     "analysisLoadErrorEmpty": "Could not load modification analysis: {{error}}",
     "loadingAnalysis": "Highlighting code...",
+    "loading": "Loading...",
+    "loadingDetails": "Loading details...",
     "noAnalysisDetails": "Detailed modification point analysis not found in results.",
     "modificationPoint": "Modification Point {{index}}",
+    "modificationAnalysis": "Modification Analysis",
     "originalSnippet": "Original Snippet",
     "modifiedSnippet": "Modified Snippet",
+    "modifiedCode": "Modified Code",
     "explanation": "Explanation",
     "sourceCodeLoadError": "Error loading source code: {{error}}",
     "sourceCodeLoadErrorEmpty": "Could not load source code: {{error}}",
@@ -96,41 +105,51 @@
     "copyCodeErrorNoCode": "No code to copy.",
     "copyCodeSuccess": "Source code copied to clipboard.",
     "copyCodeErrorFailed": "Failed to copy source code.",
+    "copyCode": "Copy Code",
     "copyCodeTooltip": "Copy Source Code",
     "drawerTitleWithId": "Analysis Results - Request #{{id}}",
     "drawerTitle": "Analysis Results",
     "regeneratingButton": "Creating...",
     "regenerateButton": "Create New Analysis",
     "originalSubmission": "Original Submission",
+    "originalSubmissionPrompt": "Original Submission Prompt",
+    "originalSubmissionImages": "Original Submission Images",
     "userPrompt": "User Input (Text/Code)",
     "noUserPrompt": "No text input",
+    "noPromptProvided": "No prompt provided",
     "submittedImages": "Submitted Images ({{count}})",
     "submittedImageAlt": "Submitted Image {{index}}",
     "analysisResults": "Analysis Results",
     "problemDetails": "Problem Details",
+    "problemAnalysis": "Problem Analysis",
+    "noProblemAnalysis": "No problem analysis available",
     "sourceCode": "Source Code",
     "codeDiff": "Code Diff",
     "analysisDetails": "Modification Analysis",
     "noDataSelected": "No request selected or no data available",
     "previewImage": "Preview Image",
-    "noImageSubmitted": "No Image Submitted"
+    "noImageSubmitted": "No Image Submitted",
+    "requestId": "Request ID",
+    "submittedAt": "Submitted At",
+    "lastUpdated": "Last Updated"
   },
   "initializationPage": {
     "initializing": "Initializing...",
     "errorMessage": "Initialization failed. Please check the backend connection and refresh.",
     "steps": {
-        "adminAccount": "Admin Account",
-        "apiConfig": "API Configuration",
-        "advancedConfig": "Advanced Configuration"
+      "adminAccount": "Admin Account",
+      "apiConfig": "API Configuration",
+      "advancedConfig": "Advanced Configuration"
     },
     "validation": {
-        "passwordMismatch": "The two passwords that you entered do not match!",
-        "usernameRequired": "Please input your Admin Username!",
-        "passwordRequired": "Please input your Admin Password!",
-        "confirmPasswordRequired": "Please confirm your Password!",
-        "apiKeyRequired": "Please input your OpenAI API Key!",
-        "systemPromptRequired": "Please input the System Prompt!",
-        "numberRequired": "Please enter an integer greater than 0!"
+      "passwordMismatch": "The two passwords that you entered do not match!",
+      "usernameRequired": "Please input your Admin Username!",
+      "passwordRequired": "Please input your Admin Password!",
+      "confirmPasswordRequired": "Please confirm your Password!",
+      "apiKeyRequired": "Please input your OpenAI API Key!",
+      "systemPromptRequired": "Please input the System Prompt!",
+      "numberRequired": "Please enter an integer greater than 0!",
+      "modelRequired": "Please input the model name!"
     },
     "successMessage": "Application initialized successfully!",
     "errorMessageDefault": "Initialization failed. Please check your input and try again.",
@@ -165,15 +184,17 @@
     "timeoutLabel": "Request Timeout (seconds)",
     "timeoutTooltip": "The timeout duration (in seconds) for processing a single request.",
     "buttons": {
-        "prev": "Previous",
-        "next": "Next",
-        "finish": "Finish & Initialize App"
+      "prev": "Previous",
+      "next": "Next",
+      "finish": "Finish & Initialize App"
     }
   },
   "app": {
     "fetchRequestsError": "Failed to fetch analysis requests.",
     "checkStatusError": "Failed to check application status. Please try refreshing.",
     "fetchDetailsError": "Failed to fetch details for Request #{{id}}. Please try again.",
+    "errorFetchingDetails": "Error fetching details",
+    "requestDeleted": "Request deleted",
     "regenerationSuccess": "New analysis request #{{id}} created and processing started.",
     "initializationSuccess": "Initialization complete. Loading application...",
     "title": "Code Analysis Tool",
@@ -187,7 +208,9 @@
     "footer": "Code Analysis Tool ©{{year}} | Powered by Ant Design"
   },
   "common": {
-      "close": "Close"
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No"
   },
   "statusIndicator": {
     "processing": "Processing, please wait...",
@@ -215,6 +238,12 @@
     "selectRequestsWarning": "Please select requests to {{action}}.",
     "batchActionInitiated": "Batch {{action}} initiated for {{count}} requests."
   },
+  "adminLayout": {
+    "websocketConnected": "Real-time updates connected",
+    "websocketReconnectFailed": "Failed to reconnect to real-time updates after multiple attempts",
+    "loadDetailsError": "Failed to refresh details for request #{{id}} after update",
+    "refreshDetailsError": "Failed to refresh full details for request #{{id}} after update."
+  },
   "adminPanel": {
     "title": "Admin Panel"
   },
@@ -241,7 +270,13 @@
   "pagination": {
     "showTotal": "{{from}}-{{to}} of {{total}} items"
   },
-  "dashboard": "Dashboard",
+  "dashboard": {
+    "title": "Dashboard",
+    "totalRequests": "Total Requests",
+    "completed": "Completed",
+    "processing": "Processing",
+    "failed": "Failed"
+  },
   "logs": "Logs",
   "logout": "Logout",
   "refresh": "Refresh",
@@ -254,12 +289,118 @@
   "cancel": "Cancel",
   "settingsPage": {
     "title": "Settings",
-    "appAndProfile": "App & Profile Settings"
+    "appAndProfile": "App & Profile Settings",
+    "appSettingsSaveSuccess": "App settings saved successfully!",
+    "noAppSettingsChanges": "No changes in app settings",
+    "loadingConfig": "Loading configuration...",
+    "loadingProfile": "Loading profile...",
+    "noProfileChanges": "No changes in profile",
+    "profileUpdateSuccess": "Profile updated successfully!",
+    "profileUpdateSuccessUsernameChanged": "Profile updated. You will need to log in again with your new username.",
+    "profileUpdateErrorNoUser": "Could not update profile: User not found",
+    "profileUsernameLabel": "Username",
+    "profileUsernameRequired": "Username is required",
+    "profileUsernameTooltip": "The unique username for logging into the Admin Panel.",
+    "profileNewPasswordLabel": "New Password",
+    "profileNewPasswordPlaceholder": "Enter new password",
+    "profileNewPasswordTooltip": "Leave blank to keep the current password. Must be at least 8 characters.",
+    "passwordPlaceholder": "Enter new password to change",
+    "passwordMinLengthError": "Password must be at least 8 characters",
+    "validationRequired": "This field is required",
+    "restartNoteTitle": "Restart Required",
+    "restartNoteDescription": "Changes to app settings will take effect after the service is restarted.",
+    "saveAppSettingsButton": "Save App Settings",
+    "saveProfileButton": "Save Profile",
+    "tabApp": "App Settings",
+    "tabProfile": "Profile",
+    "definitions": {
+      "openai_api_key": {
+        "label": "OpenAI API Key",
+        "tooltip": "Your API key for OpenAI. Keep this secret."
+      },
+      "openai_base_url": {
+        "label": "OpenAI Base URL",
+        "tooltip": "The URL for a proxy or alternative OpenAI API endpoint."
+      },
+      "openai_model": {
+        "label": "OpenAI Model",
+        "tooltip": "The OpenAI model to use for analysis, e.g., 'gpt-4-turbo'."
+      },
+      "system_prompt": {
+        "label": "System Prompt",
+        "tooltip": "The system-level instruction used when sending prompts to the AI for analysis."
+      },
+      "max_concurrent_analyses": {
+        "label": "Max Concurrent Analyses",
+        "tooltip": "Maximum number of analyses to run simultaneously"
+      },
+      "parallel_requests_per_prompt": {
+        "label": "Parallel Requests Per Prompt",
+        "tooltip": "Number of parallel API requests per analysis"
+      },
+      "max_attempts_per_prompt": {
+        "label": "Max Attempts Per Prompt",
+        "tooltip": "Maximum retry attempts for failed requests"
+      },
+      "request_timeout": {
+        "label": "Request Timeout (seconds)",
+        "tooltip": "Timeout for API requests in seconds"
+      },
+      "max_concurrent_analysis_tasks": {
+        "label": "Max Concurrent Analysis Tasks",
+        "tooltip": "The maximum number of analysis requests the system can process at the same time."
+      },
+      "parallel_openai_requests_per_prompt": {
+        "label": "Parallel OpenAI Requests per Prompt",
+        "tooltip": "How many parallel requests to send to OpenAI for a single analysis task."
+      },
+      "max_total_openai_attempts_per_prompt": {
+        "label": "Max Total OpenAI Attempts per Prompt",
+        "tooltip": "The maximum total number of times to try calling the OpenAI API for a single analysis task before giving up."
+      },
+      "request_timeout_seconds": {
+        "label": "Request Timeout (seconds)",
+        "tooltip": "The timeout in seconds for a single OpenAI API request."
+      }
+    }
   },
-  "adminLayout": {
-    "websocketConnected": "Real-time updates connected",
-    "websocketReconnectFailed": "Failed to reconnect to real-time updates after multiple attempts",
-    "refreshDetailsError": "Failed to refresh full details for request #{{id}} after update.",
-    "loadDetailsError": "Failed to load details for request #{{id}}."
+  "admin": {
+    "logs": {
+      "title": "Log Viewer",
+      "level": "Level",
+      "timestamp": "Timestamp",
+      "source": "Source",
+      "message": "Message",
+      "filterByLevel": "Filter by level",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "searchPlaceholder": "Search log messages...",
+      "refresh": "Refresh",
+      "clearAll": "Clear All",
+      "clearConfirmTitle": "Confirm Clear Logs?",
+      "clearConfirmDescription": "This action cannot be undone. All logs will be permanently deleted.",
+      "totalCount": "Total: {{count}}"
+    },
+    "settings": {
+      "fetchError": "Failed to fetch settings",
+      "updateError": "Failed to update settings",
+      "updateSuccess": "Settings updated successfully"
+    }
+  },
+  "loginPage": {
+    "title": "Admin Login",
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "usernameRequired": "Username is required",
+    "passwordRequired": "Password is required",
+    "errorMessage": "Invalid username or password"
+  },
+  "loading": "Loading...",
+  "requestStatus": {
+    "Completed": "Completed",
+    "Processing": "Processing",
+    "Failed": "Failed",
+    "Pending": "Pending"
   }
 }

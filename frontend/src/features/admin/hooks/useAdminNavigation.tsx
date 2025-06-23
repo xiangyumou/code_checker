@@ -19,14 +19,14 @@ export const useAdminNavigation = () => {
   const location = useLocation();
 
   const menuItems = useMemo(() => [
-    { key: '/admin/dashboard', icon: <DashboardOutlined />, label: t('dashboard') },
+    { key: '/admin/dashboard', icon: <DashboardOutlined />, label: t('dashboard.title') },
     { key: '/admin/requests', icon: <DatabaseOutlined />, label: t('requestManagement.title') },
     {
       key: 'monitoring', 
       icon: <MonitorOutlined />, 
       label: t('systemMonitoring.title'),
       children: [
-        { key: '/admin/logs', icon: <FileTextOutlined />, label: t('logs') },
+        { key: '/admin/logs', icon: <FileTextOutlined />, label: t('admin.logs.title') },
       ],
     },
     {
@@ -64,10 +64,10 @@ export const useAdminNavigation = () => {
   }, [location.pathname, menuItems]);
 
   const breadcrumbNameMap = useMemo(() => ({
-    '/admin/dashboard': t('dashboard'),
+    '/admin/dashboard': t('dashboard.title'),
     '/admin/requests': t('requestManagement.title'),
     '/admin/monitoring': t('systemMonitoring.title'),
-    '/admin/logs': t('logs'),
+    '/admin/logs': t('admin.logs.title'),
     '/admin/settings': t('settingsPage.title'),
   }), [t]);
 
@@ -77,7 +77,7 @@ export const useAdminNavigation = () => {
     return [
       {
         key: 'home',
-        title: <a onClick={() => navigate('/admin/dashboard')}>{t('dashboard')}</a>,
+        title: <a onClick={() => navigate('/admin/dashboard')}>{t('dashboard.title')}</a>,
       },
       ...pathSnippets.map((_: string, index: number) => {
         const url = `/${pathSnippets.slice(0, index + 1).join('/')}`;

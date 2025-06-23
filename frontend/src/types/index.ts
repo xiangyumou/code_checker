@@ -1,7 +1,7 @@
 // Define shared types used across the frontend application
 
 // Matches the RequestStatus enum from the backend
-export type RequestStatus = 'Queued' | 'Processing' | 'Completed' | 'Failed';
+export type RequestStatus = 'Pending' | 'Processing' | 'Completed' | 'Failed';
 
 // Represents a single modification analysis item from the backend response
 export interface ModificationAnalysisItem {

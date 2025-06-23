@@ -13,10 +13,10 @@
     "successMessage": "请求提交成功！",
     "errorMessage": "请求提交失败。",
     "validation": {
-        "imageFormatError": "仅支持上传 JPG/PNG 格式的图片！",
-        "imageSizeError": "图片大小不能超过 2MB！",
-        "maxImagesWarning": "最多只能上传 {{count}} 张图片。",
-        "emptySubmissionError": "请输入描述/代码或添加图片！"
+      "imageFormatError": "仅支持上传 JPG/PNG 格式的图片！",
+      "imageSizeError": "图片大小不能超过 2MB！",
+      "maxImagesWarning": "最多只能上传 {{count}} 张图片。",
+      "emptySubmissionError": "请输入描述/代码或添加图片！"
     },
     "imageProcessingError": "处理图片 \"{{name}}\" 失败。",
     "pasteDetected": "检测到图片粘贴，正在处理...",
@@ -56,12 +56,14 @@
     "analysisFailed": "分析失败",
     "unknownStatus": "未知状态",
     "parsingErrorInvalidObject": "解析后的响应不是有效的对象。",
+    "parsingErrorInvalidType": "响应类型无效或意外。",
     "parsingErrorUnknown": "无法解析 JSON 响应。",
     "parsingErrorGeneral": "解析分析结果时出错: {{error}}",
     "parsingErrorEmptyResponse": "分析成功，但响应内容为空。",
     "analysisCompletedButFailed": "分析完成但标记为失败，无详细结果。",
     "regenerateSuccess": "请求 #{{id}} 已重新加入队列进行分析。",
     "regenerateError": "触发重新分析失败。",
+    "regenerate": "重新生成",
     "noData": "无请求数据",
     "problemLoadError": "加载问题详情时出错: {{error}}",
     "parsingResponse": "正在解析响应...",
@@ -79,16 +81,23 @@
     "diffLoadError": "加载代码差异时出错: {{error}}",
     "diffLoadErrorEmpty": "无法加载代码差异: {{error}}",
     "generatingDiff": "正在生成代码差异...",
+    "diffError": "生成差异时出错",
+    "diffMissingSource": "缺少差异所需的源代码",
     "diffMissingBoth": "缺少原始代码和修改后代码，无法生成差异",
     "noModifiedCode": "分析结果中未包含修改后的代码",
+    "noDiffAvailable": "无可用差异",
     "diffGeneralError": "未检测到代码修改或生成差异时出错",
     "analysisLoadError": "加载修改分析时出错: {{error}}",
     "analysisLoadErrorEmpty": "无法加载修改分析: {{error}}",
     "loadingAnalysis": "正在高亮代码...",
+    "loading": "加载中...",
+    "loadingDetails": "正在加载详情...",
     "noAnalysisDetails": "分析结果中未包含详细的修改点分析",
     "modificationPoint": "修改点 {{index}}",
+    "modificationAnalysis": "修改分析",
     "originalSnippet": "原始片段",
     "modifiedSnippet": "修改后片段",
+    "modifiedCode": "修改后代码",
     "explanation": "说明",
     "sourceCodeLoadError": "加载源代码时出错: {{error}}",
     "sourceCodeLoadErrorEmpty": "无法加载源代码: {{error}}",
@@ -96,41 +105,51 @@
     "copyCodeErrorNoCode": "没有可复制的代码",
     "copyCodeSuccess": "源代码已复制到剪贴板",
     "copyCodeErrorFailed": "复制源代码失败",
+    "copyCode": "复制代码",
     "copyCodeTooltip": "复制代码",
     "drawerTitleWithId": "分析结果 - 请求 #{{id}}",
     "drawerTitle": "分析结果",
     "regeneratingButton": "创建中...",
     "regenerateButton": "创建新分析",
     "originalSubmission": "原始提交",
+    "originalSubmissionPrompt": "原始提交提示词",
+    "originalSubmissionImages": "原始提交图片",
     "userPrompt": "用户输入 (文本/代码)",
     "noUserPrompt": "无文本输入",
+    "noPromptProvided": "未提供提示词",
     "submittedImages": "提交的图片 ({{count}}张)",
     "submittedImageAlt": "提交的图片 {{index}}",
     "analysisResults": "分析结果",
     "problemDetails": "问题详情",
+    "problemAnalysis": "问题分析",
+    "noProblemAnalysis": "无可用问题分析",
     "sourceCode": "源代码",
     "codeDiff": "代码差异",
     "analysisDetails": "修改分析",
     "noDataSelected": "未选择请求或无数据",
     "previewImage": "预览图片",
-    "noImageSubmitted": "未提交图片"
+    "noImageSubmitted": "未提交图片",
+    "requestId": "请求ID",
+    "submittedAt": "提交时间",
+    "lastUpdated": "最后更新"
   },
   "initializationPage": {
     "initializing": "初始化中...",
     "errorMessage": "初始化失败。请检查后端连接并刷新。",
     "steps": {
-        "adminAccount": "管理员账户",
-        "apiConfig": "API 配置",
-        "advancedConfig": "高级配置"
+      "adminAccount": "管理员账户",
+      "apiConfig": "API 配置",
+      "advancedConfig": "高级配置"
     },
     "validation": {
-        "passwordMismatch": "两次输入的密码不一致！",
-        "usernameRequired": "请输入管理员用户名！",
-        "passwordRequired": "请输入管理员密码！",
-        "confirmPasswordRequired": "请再次输入密码以确认！",
-        "apiKeyRequired": "请输入您的 OpenAI API Key！",
-        "systemPromptRequired": "请输入 System Prompt！",
-        "numberRequired": "请输入大于0的整数！"
+      "passwordMismatch": "两次输入的密码不一致！",
+      "usernameRequired": "请输入管理员用户名！",
+      "passwordRequired": "请输入管理员密码！",
+      "confirmPasswordRequired": "请再次输入密码以确认！",
+      "apiKeyRequired": "请输入您的 OpenAI API Key！",
+      "systemPromptRequired": "请输入 System Prompt！",
+      "numberRequired": "请输入大于0的整数！",
+      "modelRequired": "请输入模型名称！"
     },
     "successMessage": "应用初始化成功！",
     "errorMessageDefault": "初始化失败，请检查您的输入并重试。",
@@ -165,15 +184,17 @@
     "timeoutLabel": "请求超时（秒）",
     "timeoutTooltip": "处理单个请求的超时时间（秒）。",
     "buttons": {
-        "prev": "上一步",
-        "next": "下一步",
-        "finish": "完成并初始化应用"
+      "prev": "上一步",
+      "next": "下一步",
+      "finish": "完成并初始化应用"
     }
   },
   "app": {
     "fetchRequestsError": "获取分析请求失败。",
     "checkStatusError": "检查应用程序状态失败。请尝试刷新。",
     "fetchDetailsError": "获取请求 #{{id}} 的详情失败。请重试。",
+    "errorFetchingDetails": "获取详情时出错",
+    "requestDeleted": "请求已删除",
     "regenerationSuccess": "已创建新的分析请求 #{{id}} 并开始处理。",
     "initializationSuccess": "初始化完成。正在加载应用程序...",
     "title": "代码分析工具",
@@ -187,7 +208,9 @@
     "footer": "代码分析工具 ©{{year}} | 由 Ant Design 驱动"
   },
   "common": {
-      "close": "关闭"
+    "close": "关闭",
+    "yes": "是",
+    "no": "否"
   },
   "statusIndicator": {
     "processing": "正在处理中，请稍候...",
@@ -215,6 +238,12 @@
     "selectRequestsWarning": "请选择要{{action}}的请求。",
     "batchActionInitiated": "已为 {{count}} 个请求启动批{{action}}。"
   },
+  "adminLayout": {
+    "websocketConnected": "实时更新已连接",
+    "websocketReconnectFailed": "多次尝试后无法重新连接实时更新",
+    "loadDetailsError": "更新后无法刷新请求 #{{id}} 的详细信息",
+    "refreshDetailsError": "更新后刷新请求 #{{id}} 的完整详细信息失败。"
+  },
   "adminPanel": {
     "title": "管理面板"
   },
@@ -241,7 +270,13 @@
   "pagination": {
     "showTotal": "第 {{from}}-{{to}} 条，共 {{total}} 条"
   },
-  "dashboard": "仪表板",
+  "dashboard": {
+    "title": "仪表盘",
+    "totalRequests": "总请求数",
+    "completed": "已完成",
+    "processing": "处理中",
+    "failed": "失败"
+  },
   "logs": "日志",
   "logout": "退出",
   "refresh": "刷新",
@@ -254,12 +289,118 @@
   "cancel": "取消",
   "settingsPage": {
     "title": "设置",
-    "appAndProfile": "应用和个人资料设置"
+    "appAndProfile": "应用和个人资料设置",
+    "appSettingsSaveSuccess": "应用设置已成功保存！",
+    "noAppSettingsChanges": "应用设置未更改",
+    "loadingConfig": "正在加载配置...",
+    "loadingProfile": "正在加载个人资料...",
+    "noProfileChanges": "个人资料未更改",
+    "profileUpdateSuccess": "个人资料已成功更新！",
+    "profileUpdateSuccessUsernameChanged": "个人资料已更新。您需要使用新用户名重新登录。",
+    "profileUpdateErrorNoUser": "无法更新个人资料：找不到用户",
+    "profileUsernameLabel": "用户名",
+    "profileUsernameRequired": "用户名是必填项",
+    "profileUsernameTooltip": "用于登录 Admin 面板的唯一用户名。",
+    "profileNewPasswordLabel": "新密码",
+    "profileNewPasswordPlaceholder": "输入新密码",
+    "profileNewPasswordTooltip": "留空则不更改当前密码。密码必须至少为8个字符。",
+    "passwordPlaceholder": "若要更改，请输入新密码",
+    "passwordMinLengthError": "密码必须至少为8个字符",
+    "validationRequired": "此字段为必填项",
+    "restartNoteTitle": "需要重启",
+    "restartNoteDescription": "应用设置的更改将在服务重启后生效。",
+    "saveAppSettingsButton": "保存应用设置",
+    "saveProfileButton": "保存个人资料",
+    "tabApp": "应用设置",
+    "tabProfile": "个人资料",
+    "definitions": {
+      "openai_api_key": {
+        "label": "OpenAI API 密钥",
+        "tooltip": "您的 OpenAI API 密钥。请妥善保管。"
+      },
+      "openai_base_url": {
+        "label": "OpenAI Base URL",
+        "tooltip": "代理或备用 OpenAI API 端点的 URL。"
+      },
+      "openai_model": {
+        "label": "OpenAI 模型",
+        "tooltip": "用于分析的 OpenAI 模型，例如 'gpt-4-turbo'。"
+      },
+      "system_prompt": {
+        "label": "系统提示",
+        "tooltip": "在发送给 AI 进行分析时使用的系统级指令。"
+      },
+      "max_concurrent_analyses": {
+        "label": "最大并发分析数",
+        "tooltip": "同时运行的最大分析数量"
+      },
+      "parallel_requests_per_prompt": {
+        "label": "每提示并行请求数",
+        "tooltip": "每次分析的并行 API 请求数量"
+      },
+      "max_attempts_per_prompt": {
+        "label": "每提示最大尝试次数",
+        "tooltip": "失败请求的最大重试次数"
+      },
+      "request_timeout": {
+        "label": "请求超时（秒）",
+        "tooltip": "API 请求的超时时间（秒）"
+      },
+      "max_concurrent_analysis_tasks": {
+        "label": "最大并发分析任务数",
+        "tooltip": "系统可以同时处理的最大分析请求数。"
+      },
+      "parallel_openai_requests_per_prompt": {
+        "label": "每个提示的并行 OpenAI 请求数",
+        "tooltip": "对于单个分析任务，并行向 OpenAI 发送多少个请求。"
+      },
+      "max_total_openai_attempts_per_prompt": {
+        "label": "每个提示的最大总 OpenAI 尝试次数",
+        "tooltip": "在放弃之前，为单个分析任务尝试调用 OpenAI API 的最大总次数。"
+      },
+      "request_timeout_seconds": {
+        "label": "请求超时（秒）",
+        "tooltip": "单个 OpenAI API 请求的超时时间（秒）。"
+      }
+    }
   },
-  "adminLayout": {
-    "websocketConnected": "实时更新已连接",
-    "websocketReconnectFailed": "多次尝试后无法重新连接到实时更新",
-    "refreshDetailsError": "更新后刷新请求 #{{id}} 的完整详细信息失败。",
-    "loadDetailsError": "加载请求 #{{id}} 的详细信息失败。"
+  "admin": {
+    "logs": {
+      "title": "日志查看器",
+      "level": "级别",
+      "timestamp": "时间戳",
+      "source": "来源",
+      "message": "消息",
+      "filterByLevel": "按级别过滤",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "searchPlaceholder": "搜索日志消息...",
+      "refresh": "刷新",
+      "clearAll": "全部清除",
+      "clearConfirmTitle": "确认清除日志？",
+      "clearConfirmDescription": "此操作无法撤销。所有日志将被永久删除。",
+      "totalCount": "总计 {{count}} 条"
+    },
+    "settings": {
+      "fetchError": "获取设置失败",
+      "updateError": "更新设置失败",
+      "updateSuccess": "设置更新成功"
+    }
+  },
+  "loginPage": {
+    "title": "管理员登录",
+    "login": "登录",
+    "username": "用户名",
+    "password": "密码",
+    "usernameRequired": "请输入用户名",
+    "passwordRequired": "请输入密码",
+    "errorMessage": "无效的用户名或密码"
+  },
+  "loading": "加载中...",
+  "requestStatus": {
+    "Completed": "已完成",
+    "Processing": "处理中",
+    "Failed": "失败",
+    "Pending": "待处理"
   }
 }
