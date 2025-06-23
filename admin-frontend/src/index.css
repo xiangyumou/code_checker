@@ -52,6 +52,35 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Fix for Ant Design Image Preview Modal */
+.ant-image-preview-mask,
+.ant-image-preview .ant-image-preview-mask {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.ant-image-preview-wrap,
+.ant-image-preview .ant-image-preview-wrap {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.ant-image-preview-root,
+.ant-image-preview {
+  z-index: 1000 !important;
+}
+
+/* Alternative selectors for different Ant Design versions */
+.ant-modal-root .ant-image-preview-mask {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.ant-modal-root .ant-image-preview-wrap {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

@@ -20,8 +20,19 @@ import 'katex/dist/katex.min.css';
 
 // Define the base token configuration (can be reused across themes)
 const baseThemeToken = {
-  colorPrimary: '#1677ff', // Ant Design default blue, adjust if needed
-  // borderRadius: 6, // Example: slightly more rounded corners
+  // --- Color Palette ---
+  colorPrimary: '#00b96b', // A vibrant green for primary actions and highlights
+  colorSuccess: '#52c41a', // Standard success status green
+  colorWarning: '#faad14', // Standard warning status orange
+  colorError: '#ff4d4f',   // Standard error status red
+  colorInfo: '#1677ff',    // Standard info status blue (Ant Design default)
+
+  // --- Sizing & Spacing ---
+  borderRadius: 8,         // Slightly larger radius for a softer, modern feel
+
+  // --- Font ---
+  // System font stack for broad compatibility and modern look
+  fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'`,
 };
 
 
