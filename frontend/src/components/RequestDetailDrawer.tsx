@@ -570,14 +570,6 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
                                 src={`data:image/png;base64,${base64String}`}
                                 alt={t('requestDetails.submittedImageAlt', { index: index + 1 })}
                                 style={{ border: '1px solid #eee', objectFit: 'contain', background: '#f9f9f9', borderRadius: '4px', display: 'inline-block' }} // Added display inline-block for Space layout
-                                preview={{
-                                  mask: <div style={{ background: 'rgba(0, 0, 0, 0.5)', color: 'white', textAlign: 'center', lineHeight: '180px' }}>{t('requestDetails.previewImage')}</div>,
-                                }}
-                                placeholder={
-                                  <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', border: '1px solid #eee', borderRadius: '4px' }}>
-                                    <Spin size="small" />
-                                  </div>
-                                }
                               />
                             ))}
                           </Space>
