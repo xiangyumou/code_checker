@@ -553,6 +553,14 @@ async def process_analysis_request(request_id: int):
 
             except Exception as e:
                 logger.exception(f"Critical error processing request ID {request_id}: {e}")
+                await db_logger.error(
+                    db,
+                    f"Critical error processing request {request_id}: {str(e)}",
+                    extra_data={
+                        "request_id": request_id,
+                        "error_type": type(e).__name__
+                    }
+                )
                 await _handle_critical_error(db, request, request_id, e)
                 
         logger.info(f"Finished processing request ID: {request_id}")
@@ -574,6 +582,15 @@ async def _handle_critical_error(
                 )
                 await db.commit()
                 logger.info(f"Marked request {request_id} as Failed due to critical error.")
+                await db_logger.error(
+                    db,
+                    f"Request {request_id} marked as FAILED due to critical error",
+                    extra_data={
+                        "request_id": request_id,
+                        "error_type": type(error).__name__,
+                        "error_message": fail_msg
+                    }
+                )
                 
                 # Broadcast failure
                 await db.refresh(request)

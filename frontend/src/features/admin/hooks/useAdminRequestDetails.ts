@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { getAdminAnalysisRequestDetails } from '../api/adminRequests';
 import type { AnalysisRequest } from '../../../types/index';
 
 export const useAdminRequestDetails = () => {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const [requestDetailsCache, setRequestDetailsCache] = useState<Record<number, AnalysisRequest>>({});
   const [selectedRequestDetails, setSelectedRequestDetails] = useState<AnalysisRequest | null>(null);
   const [detailDrawerRequestId, setDetailDrawerRequestId] = useState<number | null>(null);

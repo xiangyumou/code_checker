@@ -4,6 +4,7 @@ from .request import Request, RequestStatus
 # from .analysis_version import AnalysisVersion # Removed import
 # Import Settings model
 from .setting import Setting
+from .log import Log, LogLevel
 
 # Optional: Define __all__ for explicit exports
 __all__ = [
@@ -12,4 +13,6 @@ __all__ = [
     "RequestStatus",
     # "AnalysisVersion", # Removed from exports
     "Setting",
+    "Log",
+    "LogLevel",
 ]

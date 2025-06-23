@@ -1,35 +1,46 @@
-import { useState, useCallback } from 'react';
-import { message } from 'antd';
+import { useState, useCallback, useRef } from 'react';
+import { App } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { getAdminAnalysisRequests } from '../api/adminRequests';
 import type { RequestSummary, RequestStatus } from '../../../types/index';
 
 export const useAdminRequests = () => {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const [requests, setRequests] = useState<RequestSummary[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [totalRequests, setTotalRequests] = useState(0);
+  
+  // Use refs to store current values to avoid recreating fetchData
+  const currentPageRef = useRef(currentPage);
+  const pageSizeRef = useRef(pageSize);
+  
+  // Update refs when state changes
+  currentPageRef.current = currentPage;
+  pageSizeRef.current = pageSize;
 
-  const fetchData = useCallback(async (page: number = currentPage, size: number = pageSize, status?: RequestStatus) => {
+  const fetchData = useCallback(async (page?: number, size?: number, status?: RequestStatus) => {
     setLoadingRequests(true);
     try {
-      const skip = (page - 1) * size;
-      const fetchedRequests = await getAdminAnalysisRequests(status, skip, size);
+      const actualPage = page ?? currentPageRef.current;
+      const actualSize = size ?? pageSizeRef.current;
+      const skip = (actualPage - 1) * actualSize;
+      const fetchedRequests = await getAdminAnalysisRequests(status, skip, actualSize);
       setRequests(fetchedRequests);
       
-      if (fetchedRequests.length < size) {
-        setTotalRequests((page - 1) * size + fetchedRequests.length);
+      if (fetchedRequests.length < actualSize) {
+        setTotalRequests((actualPage - 1) * actualSize + fetchedRequests.length);
       } else {
-        setTotalRequests(page * size + 1);
+        setTotalRequests(actualPage * actualSize + 1);
       }
     } catch (error) {
       message.error(t('adminRequests.fetchError'));
     } finally {
       setLoadingRequests(false);
     }
-  }, [currentPage, pageSize, t]);
+  }, [message, t]);
 
   const handlePageChange = useCallback((page: number, size?: number) => {
     setCurrentPage(page);

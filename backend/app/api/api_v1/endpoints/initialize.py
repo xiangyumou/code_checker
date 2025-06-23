@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional, Text # Added Optional, Text
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError # Import SQLAlchemyError
 import logging # Import logging
@@ -9,6 +9,7 @@ import re # For regex validation
 from app import crud, models, schemas
 from app.api import deps
 from app.core.config import settings as core_settings # Rename to avoid conflict, use core settings for defaults if needed
+from app.core.logging import get_db_logger
 from pydantic import Field, field_validator, PositiveInt # Import field_validator, PositiveInt
 
 
@@ -77,6 +78,7 @@ class InitializeData(schemas.AdminUserCreate): # Inherits username/password vali
 
 router = APIRouter()
 logger = logging.getLogger("app." + __name__) # Add logger instance
+db_logger = get_db_logger("api.initialize")
 
 # We need a way to store/check the initialization status persistently.
 # A simple approach is a dedicated table or a specific row in a settings table.
@@ -125,6 +127,7 @@ async def get_initialization_status(
 @router.post("/", response_model=schemas.AdminUser, status_code=status.HTTP_201_CREATED)
 async def initialize_application(
     *,
+    request: Request,
     db: AsyncSession = Depends(deps.get_db),
     init_data: InitializeData,
     initialized: bool = Depends(check_initialization_status)
@@ -155,6 +158,18 @@ async def initialize_application(
         is_active=True # First user is active by default
     )
     created_user = await crud.crud_admin_user.create(db, obj_in=admin_user_in)
+    
+    # Log admin user creation
+    client_ip = request.client.host if request.client else "unknown"
+    await db_logger.info(
+        db,
+        f"Initial admin user created: {created_user.username}",
+        extra_data={
+            "username": created_user.username,
+            "user_id": created_user.id,
+            "client_ip": client_ip
+        }
+    )
 
     # --- Save initial settings using crud_setting ---
     # Note: API Key is stored as provided. Consider encryption/obfuscation in a real-world scenario.
@@ -177,6 +192,24 @@ async def initialize_application(
     await crud.crud_setting.create_or_update(db, key="is_initialized", value=True)
 
     # --- End Settings Saving ---
+    
+    # Log successful initialization
+    await db_logger.info(
+        db,
+        f"System initialized successfully by {created_user.username}",
+        extra_data={
+            "admin_user_id": created_user.id,
+            "settings_configured": [
+                "openai_api_key",
+                "openai_model",
+                "system_prompt",
+                "max_concurrent_analysis_tasks",
+                "parallel_openai_requests_per_prompt",
+                "max_total_openai_attempts_per_prompt",
+                "request_timeout_seconds"
+            ]
+        }
+    )
 
     # We return the created admin user info (excluding password)
     return created_user

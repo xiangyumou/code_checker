@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Layout, theme } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { apiClient } from '../lib/communication';
@@ -56,14 +56,17 @@ const MainLayout: React.FC = () => {
     username,
   } = useAdminNavigation();
 
-  // Setup WebSocket connection
+  // Memoize WebSocket callbacks to prevent reconnection on every render
+  const handleWsRequestDeleted = useCallback((deletedId: number) => {
+    removeRequest(deletedId);
+    handleRequestDeleted(deletedId);
+  }, [removeRequest, handleRequestDeleted]);
+
+  // Setup WebSocket connection with memoized callbacks
   useAdminWebSocket({
     onRequestCreated: addRequest,
     onRequestUpdated: updateRequest,
-    onRequestDeleted: (deletedId) => {
-      removeRequest(deletedId);
-      handleRequestDeleted(deletedId);
-    },
+    onRequestDeleted: handleWsRequestDeleted,
     onSelectedRequestUpdated: updateSelectedRequestDetails,
   });
 

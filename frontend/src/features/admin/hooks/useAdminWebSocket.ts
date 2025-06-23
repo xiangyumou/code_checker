@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { message } from 'antd';
+import { App } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { useWebSocket } from '../lib/communication';
 import type { RequestSummary, AnalysisRequest } from '../../../types/index';
@@ -18,12 +18,31 @@ export const useAdminWebSocket = ({
   onSelectedRequestUpdated,
 }: UseAdminWebSocketProps) => {
   const { t } = useTranslation();
+  const { message } = App.useApp();
   const webSocketHook = useWebSocket;
   const wsConnectedRef = useRef(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 5;
   const reconnectDelayMs = 3000;
+
+  // Store callbacks in refs to avoid reconnection on prop changes
+  const callbacksRef = useRef({
+    onRequestCreated,
+    onRequestUpdated,
+    onRequestDeleted,
+    onSelectedRequestUpdated,
+  });
+
+  // Update refs when callbacks change
+  useEffect(() => {
+    callbacksRef.current = {
+      onRequestCreated,
+      onRequestUpdated,
+      onRequestDeleted,
+      onSelectedRequestUpdated,
+    };
+  }, [onRequestCreated, onRequestUpdated, onRequestDeleted, onSelectedRequestUpdated]);
 
   useEffect(() => {
     if (wsConnectedRef.current) {
@@ -52,18 +71,18 @@ export const useAdminWebSocket = ({
 
       webSocketHook.on('request_created', (event) => {
         const payload = event.payload as RequestSummary;
-        onRequestCreated(payload);
+        callbacksRef.current.onRequestCreated(payload);
       }),
 
       webSocketHook.on('request_updated', (event) => {
         const payload = event.payload as Partial<RequestSummary> & { id: number };
-        onRequestUpdated(payload);
-        onSelectedRequestUpdated(payload.id, payload);
+        callbacksRef.current.onRequestUpdated(payload);
+        callbacksRef.current.onSelectedRequestUpdated(payload.id, payload);
       }),
 
       webSocketHook.on('request_deleted', (event) => {
         const payload = event.payload as { id: number };
-        onRequestDeleted(payload.id);
+        callbacksRef.current.onRequestDeleted(payload.id);
       })
     ];
 
@@ -78,7 +97,7 @@ export const useAdminWebSocket = ({
       webSocketHook.disconnect();
       wsConnectedRef.current = false;
     };
-  }, [webSocketHook, onRequestCreated, onRequestUpdated, onRequestDeleted, onSelectedRequestUpdated, t]);
+  }, []); // Remove dependencies to prevent reconnection on prop changes
 
   return null;
 };

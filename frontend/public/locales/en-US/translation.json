@@ -265,5 +265,27 @@
     "websocketConnected": "Real-time updates connected",
     "websocketReconnectFailed": "Failed to reconnect to real-time updates after multiple attempts",
     "loadDetailsError": "Failed to refresh details for request #{{id}} after update"
+  },
+  "admin": {
+    "logs": {
+      "title": "System Logs",
+      "level": "Level",
+      "timestamp": "Timestamp",
+      "source": "Source",
+      "message": "Message",
+      "filterByLevel": "Filter by Level",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "searchPlaceholder": "Search in message and source",
+      "refresh": "Refresh",
+      "clearAll": "Clear All Logs",
+      "clearConfirmTitle": "Clear All Logs?",
+      "clearConfirmDescription": "This action cannot be undone. All logs will be permanently deleted.",
+      "totalCount": "Total: {{count}} logs"
+    }
+  },
+  "common": {
+    "yes": "Yes",
+    "no": "No"
   }
 }

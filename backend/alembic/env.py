@@ -21,6 +21,7 @@ from app.models.admin_user import AdminUser
 from app.models.request import Request
 # from app.models.analysis_version import AnalysisVersion # Removed import
 from app.models.setting import Setting
+from app.models.log import Log
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -117,8 +118,7 @@ async def run_migrations_online() -> None:
     # This is the standard approach for Alembic async support.
     connectable = create_async_engine(
         async_db_url,
-        poolclass=pool.NullPool,
-        asyncio_driver="asyncpg" # Explicitly specify the async driver
+        poolclass=pool.NullPool
     )
 
 

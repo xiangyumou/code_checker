@@ -260,5 +260,32 @@
   "settingsPage": {
     "title": "设置",
     "appAndProfile": "应用和个人资料设置"
+  },
+  "adminLayout": {
+    "websocketConnected": "实时更新已连接",
+    "websocketReconnectFailed": "多次尝试后无法重新连接实时更新",
+    "loadDetailsError": "更新后无法刷新请求 #{{id}} 的详细信息"
+  },
+  "admin": {
+    "logs": {
+      "title": "系统日志",
+      "level": "级别",
+      "timestamp": "时间戳",
+      "source": "来源",
+      "message": "消息",
+      "filterByLevel": "按级别筛选",
+      "startDate": "开始日期",
+      "endDate": "结束日期",
+      "searchPlaceholder": "在消息和来源中搜索",
+      "refresh": "刷新",
+      "clearAll": "清除所有日志",
+      "clearConfirmTitle": "清除所有日志？",
+      "clearConfirmDescription": "此操作无法撤消。所有日志将被永久删除。",
+      "totalCount": "总计：{{count}} 条日志"
+    }
+  },
+  "common": {
+    "yes": "是",
+    "no": "否"
   }
 }

@@ -1,79 +1,62 @@
-import os
 import logging
-from typing import List, Optional
+from typing import Optional
+from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from starlette.responses import PlainTextResponse
+from fastapi import APIRouter, HTTPException, Query, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-# Import settings instance and LOGS_DIR constant separately
-from app.core.config import settings as app_settings, LOGS_DIR
-from app.api import deps # For admin dependency
-from app import models # Import models for type hinting
+from app.api import deps
+from app import models, schemas
+from app.models.log import LogLevel
+from app.services.log_service import log_service
 
-logger = logging.getLogger("app." + __name__) # Use 'app' namespace
+logger = logging.getLogger("app." + __name__)
 router = APIRouter()
 
-LOG_DIRECTORY = LOGS_DIR # Use the imported constant
-ALLOWED_LOG_FILES = ["app.log"] # Define allowed files for security
 
-def get_log_file_path(filename: str) -> str:
-    """Validates filename and returns the full path."""
-    if filename not in ALLOWED_LOG_FILES:
-        raise HTTPException(status_code=404, detail=f"Log file '{filename}' not found or not accessible.")
-    path = os.path.join(LOG_DIRECTORY, filename)
-    if not os.path.exists(path) or not os.path.isfile(path):
-         raise HTTPException(status_code=404, detail=f"Log file '{filename}' not found.")
-    return path
-
-@router.get("/", response_model=List[str])
-async def list_log_files(
-    current_user: models.AdminUser = Depends(deps.get_current_active_user) # Corrected dependency name
-) -> List[str]:
+@router.get("/", response_model=schemas.PaginatedLogs)
+async def get_logs(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    level: Optional[LogLevel] = Query(None, description="Filter by log level"),
+    start_date: Optional[datetime] = Query(None, description="Filter logs from this date"),
+    end_date: Optional[datetime] = Query(None, description="Filter logs until this date"),
+    search: Optional[str] = Query(None, description="Search in message and source fields"),
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: models.AdminUser = Depends(deps.get_current_active_user)
+) -> schemas.PaginatedLogs:
     """
-    List available log files.
+    Retrieve a paginated, filterable, and searchable list of log entries.
+    
+    - **skip**: Number of records to skip (for pagination)
+    - **limit**: Maximum number of records to return (max: 1000)
+    - **level**: Filter by log level (DEBUG, INFO, WARNING, ERROR)
+    - **start_date**: Filter logs from this datetime (inclusive)
+    - **end_date**: Filter logs until this datetime (inclusive)
+    - **search**: Fuzzy search across message and source fields
     """
-    # For now, just return the allowed list if they exist
-    available_files = []
-    for filename in ALLOWED_LOG_FILES:
-        path = os.path.join(LOG_DIRECTORY, filename)
-        if os.path.exists(path) and os.path.isfile(path):
-            available_files.append(filename)
-    return available_files
+    result = await log_service.get_logs(
+        db,
+        skip=skip,
+        limit=limit,
+        level=level,
+        start_date=start_date,
+        end_date=end_date,
+        search=search
+    )
+    
+    return schemas.PaginatedLogs(**result)
 
-@router.get("/{filename}", response_class=PlainTextResponse)
-async def get_log_content(
-    filename: str,
-    tail: Optional[int] = Query(None, description="Return the last N lines of the log file.", ge=1),
-    head: Optional[int] = Query(None, description="Return the first N lines of the log file.", ge=1),
-    # TODO: Add start_line/end_line support if needed (more complex file reading)
-    current_user: models.AdminUser = Depends(deps.get_current_active_user) # Corrected dependency name
-) -> str:
+
+@router.delete("/", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_all_logs(
+    db: AsyncSession = Depends(deps.get_db),
+    current_user: models.AdminUser = Depends(deps.get_current_active_user)
+) -> None:
     """
-    Retrieve the content of a specific log file.
-    Supports retrieving the head or tail N lines.
+    Delete all log entries from the database.
+    
+    This action cannot be undone. Use with caution.
     """
-    log_path = get_log_file_path(filename)
-    try:
-        with open(log_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-
-        if tail:
-            content = "".join(lines[-tail:])
-        elif head:
-            content = "".join(lines[:head])
-        else:
-            # Return full content if no tail/head specified (might be large!)
-            # Consider adding a default limit or requiring tail/head
-            content = "".join(lines)
-            if len(lines) > 1000: # Add a warning or limit if file is too large
-                 logger.warning(f"Returning full log file '{filename}' which has {len(lines)} lines.")
-                 # Optionally truncate here or raise an error
-                 # content = "".join(lines[-1000:]) # Example: return last 1000 lines only
-
-        return content
-    except Exception as e:
-        logger.error(f"Error reading log file '{filename}': {e}")
-        raise HTTPException(status_code=500, detail=f"Could not read log file: {e}")
-
-# Need to import models for dependency
-from app import models
+    await log_service.clear_all_logs(db)
+    logger.warning(f"All logs cleared by admin user: {current_user.username}")

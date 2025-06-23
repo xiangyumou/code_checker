@@ -5,10 +5,12 @@ from .request import Request, RequestCreate, RequestUpdate, RequestInDBBase, Req
 from .token import Token, TokenPayload
 # Import Setting schemas
 from .setting import Setting, SettingCreate, SettingUpdate, SettingList, SettingsUpdate
+from .log import Log, LogCreate, LogInDBBase, PaginatedLogs
 
 __all__ = [
     "AdminUser", "AdminUserCreate", "AdminUserUpdate", "AdminUserInDBBase",
     "Request", "RequestCreate", "RequestUpdate", "RequestInDBBase", "RequestStatus", "RequestSummary",
     "Token", "TokenPayload",
     "Setting", "SettingCreate", "SettingUpdate", "SettingList", "SettingsUpdate",
+    "Log", "LogCreate", "LogInDBBase", "PaginatedLogs",
 ]

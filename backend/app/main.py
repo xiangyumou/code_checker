@@ -27,6 +27,8 @@ from app.crud.crud_setting import crud_setting # To get log level from DB
 from app.core.exceptions import AppException # Import custom base exception
 # Import the semaphore initialization function
 from app.services.openai_processor import initialize_analysis_semaphore, process_analysis_request # Import process_analysis_request
+# Import background tasks
+from app.core.tasks import create_start_app_handler, create_stop_app_handler
 
 # --- Logging Configuration ---
 
@@ -287,6 +289,19 @@ async def lifespan(app: FastAPI):
     app.state.worker_tasks = worker_tasks_list # Store the list of worker tasks
     logger.info(f"{len(worker_tasks_list)} analysis worker task(s) created, started, and stored in app.state.")
 
+    # --- Start Background Tasks ---
+    start_app_handler = create_start_app_handler()
+    await start_app_handler()
+
+    # --- Log application startup to database ---
+    try:
+        from app.core.logging import get_db_logger
+        db_logger = get_db_logger("app.main")
+        async with AsyncSessionLocal() as db:
+            await db_logger.info(db, "Application started successfully")
+    except Exception as e:
+        logger.error(f"Failed to log startup to database: {e}")
+
     logger.info("Application startup sequence finished.")
     yield
     # Code to run on shutdown
@@ -328,6 +343,17 @@ async def lifespan(app: FastAPI):
 
     else:
         logger.warning("Analysis queue or worker tasks list not found during shutdown.")
+
+    # --- Stop Background Tasks ---
+    stop_app_handler = create_stop_app_handler()
+    await stop_app_handler()
+    
+    # --- Log application shutdown to database ---
+    try:
+        async with AsyncSessionLocal() as db:
+            await db_logger.info(db, "Application shutdown completed")
+    except Exception as e:
+        logger.error(f"Failed to log shutdown to database: {e}")
 
     # Add other cleanup code here if needed
     logger.info("Application shutdown sequence finished.")

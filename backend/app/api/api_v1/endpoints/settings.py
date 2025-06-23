@@ -9,9 +9,11 @@ from app import crud, models, schemas
 from app.api import deps
 # Import config settings to know which keys are expected/managed
 from app.core.config import settings as default_settings
+from app.core.logging import get_db_logger
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+db_logger = get_db_logger("api.settings")
 
 # Define keys that are considered sensitive and should not be returned directly
 # Or implement more granular control based on user roles if needed later
@@ -107,6 +109,10 @@ async def update_settings(
             setting = await crud.crud_setting.create_or_update(db, key=key, value=value_to_save)
             updated_settings[key] = setting.value # Store the raw saved value (string from DB)
             logger.info(f"Setting '{key}' updated successfully.")
+            
+            # Log to database (mask sensitive values)
+            log_value = "**** MASKED ****" if key in SENSITIVE_KEYS else str(value_to_save)
+            await db_logger.info(db, f"Setting '{key}' updated by {current_user.username} to: {log_value}")
         except Exception as e:
             logger.error(f"Failed to update setting '{key}': {e}")
             # Decide on error handling: continue or raise exception?

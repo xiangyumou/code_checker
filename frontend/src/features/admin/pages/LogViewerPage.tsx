@@ -1,123 +1,230 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Select, Button, Spin, InputNumber, Input, Space, Card, Typography, Alert } from 'antd';
-import { useTranslation } from 'react-i18next'; // Import useTranslation
-import { SyncOutlined } from '@ant-design/icons';
-import { listLogFiles, getLogContent } from '../api/logs';
+import { 
+  Table, 
+  Tag, 
+  DatePicker, 
+  Select, 
+  Input, 
+  Space, 
+  Button, 
+  Card,
+  Popconfirm,
+  message,
+  Tooltip,
+  Typography
+} from 'antd';
+import { SearchOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
+import { useTranslation } from 'react-i18next';
 
-// Option is deprecated, using options prop for Select instead
-const { Title, Paragraph } = Typography;
-const { TextArea } = Input;
+import { Log, LogLevel, LogQueryParams } from '../../../types';
+import { getLogs, clearAllLogs } from '../api/logs';
+
+const { RangePicker } = DatePicker;
+const { Search } = Input;
+const { Title } = Typography;
 
 const LogViewerPage: React.FC = () => {
-    const { t } = useTranslation(); // Initialize useTranslation hook
-    const [logFiles, setLogFiles] = useState<string[]>([]);
-    const [selectedFile, setSelectedFile] = useState<string | undefined>(undefined);
-    const [logContent, setLogContent] = useState<string>('');
-    const [loadingFiles, setLoadingFiles] = useState(true);
-    const [loadingContent, setLoadingContent] = useState(false);
-    const [tailLines, setTailLines] = useState<number | null>(200); // Default to last 200 lines
-
-    // Fetch available log files on mount
-    const fetchLogFiles = useCallback(async () => {
-        setLoadingFiles(true);
-        try {
-            const files = await listLogFiles();
-            setLogFiles(files);
-            // Automatically select the first file if available
-            if (files.length > 0 && !selectedFile) {
-                setSelectedFile(files[0]);
-            }
-        } catch (error) {
-            // Error handled by API message
-        } finally {
-            setLoadingFiles(false);
-        }
-    }, [selectedFile]); // Re-run if selectedFile changes (though it shouldn't affect the list)
-
-    useEffect(() => {
-        fetchLogFiles();
-    }, [fetchLogFiles]);
-
-    // Fetch log content when selected file or tailLines changes
-    const fetchLogContent = useCallback(async () => {
-        if (!selectedFile) {
-            setLogContent('');
-            return;
-        }
-        setLoadingContent(true);
-        try {
-            const content = await getLogContent(selectedFile, tailLines ?? undefined); // Pass null as undefined
-            setLogContent(content);
-        } catch (error) {
-            // Use t() for error message
-            setLogContent(t('logViewer.loadError', { error })); // Define new key
-        } finally {
-            setLoadingContent(false);
-        }
-    }, [selectedFile, tailLines]);
-
-    useEffect(() => {
-        fetchLogContent();
-    }, [fetchLogContent]); // Run when the callback changes (due to dependencies)
-
-    return (
-        <Card> {/* Content is already wrapped in Card, ensure consistent styling */}
-            <Title level={2} style={{ marginBottom: '24px' }}>{t('logViewer.title')}</Title> {/* Define new key */}
-            {/* <Paragraph>{t('logViewer.description')}</Paragraph> */} {/* Optional: Define new key */}
-
-            <Space direction="vertical" style={{ width: '100%', marginBottom: 16 }}> {/* Use vertical space for controls */}
-                <Space wrap> {/* Wrap controls for responsiveness */}
-                    <Select
-                        style={{ minWidth: 250 }} // Slightly wider select
-                        placeholder={t('logViewer.selectPlaceholder')} // Define new key
-                        loading={loadingFiles}
-                        value={selectedFile}
-                        onChange={(value) => setSelectedFile(value)}
-                        disabled={loadingFiles || logFiles.length === 0}
-                        options={logFiles.map(file => ({
-                            key: file,
-                            value: file,
-                            label: file
-                        }))}
-                    />
-                    {/* Remove generic type constraint, allow component to handle null */}
-                    <InputNumber
-                        min={1}
-                        value={tailLines}
-                        onChange={(value: number | null) => setTailLines(value)} // Explicitly type the callback parameter
-                        placeholder={t('logViewer.tailLinesPlaceholder')} // Define new key
-                        addonBefore={t('logViewer.tailLinesAddon')} // Define new key
-                        style={{ width: 200 }} // Wider input
-                        disabled={!selectedFile || loadingContent}
-                    />
-                     <Button
-                        onClick={fetchLogContent}
-                        loading={loadingContent}
-                        icon={<SyncOutlined />}
-                        disabled={!selectedFile}
-                    >
-                        {t('logViewer.refreshButton')} {/* Define new key */}
-                    </Button>
-                </Space>
-            </Space>
-
-            {loadingContent ? (
-                <div style={{ textAlign: 'center', padding: '50px 0' }}>
-                    <Spin tip={t('logViewer.loadingContent')} /> {/* Define new key */}
-                </div>
-            ) : selectedFile ? (
-                <TextArea
-                    readOnly
-                    value={logContent}
-                    // Adjust height dynamically or use a larger fixed height
-                    style={{ minHeight: '65vh', fontFamily: 'monospace', whiteSpace: 'pre', overflow: 'auto', fontSize: '12px' }}
-                    placeholder={t('logViewer.contentPlaceholder', { file: selectedFile })} // Define new key
-                />
-            ) : (
-                 <Alert message={t('logViewer.selectFileMessage')} type="info" showIcon /> // Define new key
-            )}
-        </Card>
-    );
+  const { t } = useTranslation();
+  
+  // State for logs data
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  
+  // State for filters and pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [levelFilter, setLevelFilter] = useState<LogLevel | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Fetch logs function
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: LogQueryParams = {
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize,
+        level: levelFilter,
+        search: searchTerm || undefined,
+        start_date: dateRange?.[0]?.toISOString(),
+        end_date: dateRange?.[1]?.toISOString(),
+      };
+      
+      const result = await getLogs(params);
+      setLogs(result.items);
+      setTotal(result.total);
+    } catch (error) {
+      // Error already handled by API function
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, pageSize, levelFilter, dateRange, searchTerm]);
+  
+  // Fetch logs on component mount and when filters change
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+  
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [levelFilter, dateRange, searchTerm]);
+  
+  // Handle clear all logs
+  const handleClearAllLogs = async () => {
+    try {
+      await clearAllLogs();
+      fetchLogs();
+    } catch (error) {
+      // Error already handled by API function
+    }
+  };
+  
+  // Get tag color based on log level
+  const getLogLevelColor = (level: LogLevel): string => {
+    switch (level) {
+      case 'DEBUG':
+        return 'blue';
+      case 'INFO':
+        return 'green';
+      case 'WARNING':
+        return 'orange';
+      case 'ERROR':
+        return 'red';
+      default:
+        return 'default';
+    }
+  };
+  
+  // Table columns definition
+  const columns: ColumnsType<Log> = [
+    {
+      title: t('admin.logs.level'),
+      dataIndex: 'level',
+      key: 'level',
+      width: 100,
+      render: (level: LogLevel) => (
+        <Tag color={getLogLevelColor(level)}>
+          {level}
+        </Tag>
+      ),
+    },
+    {
+      title: t('admin.logs.timestamp'),
+      dataIndex: 'timestamp',
+      key: 'timestamp',
+      width: 180,
+      render: (timestamp: string) => dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss'),
+    },
+    {
+      title: t('admin.logs.source'),
+      dataIndex: 'source',
+      key: 'source',
+      width: 200,
+      ellipsis: true,
+      render: (source: string | null) => source || '-',
+    },
+    {
+      title: t('admin.logs.message'),
+      dataIndex: 'message',
+      key: 'message',
+      ellipsis: true,
+      render: (message: string) => (
+        <Tooltip title={message}>
+          <span>{message}</span>
+        </Tooltip>
+      ),
+    },
+  ];
+  
+  return (
+    <div style={{ padding: '24px' }}>
+      <Title level={2}>{t('admin.logs.title')}</Title>
+      
+      <Card style={{ marginBottom: 16 }}>
+        <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Space wrap>
+            <Select
+              style={{ width: 200 }}
+              placeholder={t('admin.logs.filterByLevel')}
+              allowClear
+              value={levelFilter}
+              onChange={setLevelFilter}
+            >
+              <Select.Option value="DEBUG">DEBUG</Select.Option>
+              <Select.Option value="INFO">INFO</Select.Option>
+              <Select.Option value="WARNING">WARNING</Select.Option>
+              <Select.Option value="ERROR">ERROR</Select.Option>
+            </Select>
+            
+            <RangePicker
+              showTime
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates)}
+              placeholder={[t('admin.logs.startDate'), t('admin.logs.endDate')]}
+            />
+            
+            <Search
+              placeholder={t('admin.logs.searchPlaceholder')}
+              allowClear
+              enterButton={<SearchOutlined />}
+              style={{ width: 300 }}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onSearch={(value) => setSearchTerm(value)}
+            />
+            
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={fetchLogs}
+              loading={loading}
+            >
+              {t('admin.logs.refresh')}
+            </Button>
+            
+            <Popconfirm
+              title={t('admin.logs.clearConfirmTitle')}
+              description={t('admin.logs.clearConfirmDescription')}
+              onConfirm={handleClearAllLogs}
+              okText={t('common.yes')}
+              cancelText={t('common.no')}
+              okButtonProps={{ danger: true }}
+            >
+              <Button 
+                danger
+                icon={<DeleteOutlined />}
+              >
+                {t('admin.logs.clearAll')}
+              </Button>
+            </Popconfirm>
+          </Space>
+        </Space>
+      </Card>
+      
+      <Table
+        columns={columns}
+        dataSource={logs}
+        rowKey="id"
+        loading={loading}
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: total,
+          showSizeChanger: true,
+          showTotal: (total) => t('admin.logs.totalCount', { count: total }),
+          pageSizeOptions: ['20', '50', '100', '200'],
+          onChange: (page, size) => {
+            setCurrentPage(page);
+            setPageSize(size || 50);
+          },
+        }}
+        scroll={{ x: 800 }}
+      />
+    </div>
+  );
 };
 
 export default LogViewerPage;

@@ -253,5 +253,32 @@
   "settingsPage": {
     "title": "Einstellungen",
     "appAndProfile": "App- und Profilweinstellungen"
+  },
+  "adminLayout": {
+    "websocketConnected": "Echtzeit-Updates verbunden",
+    "websocketReconnectFailed": "Verbindung zu Echtzeit-Updates nach mehreren Versuchen fehlgeschlagen",
+    "loadDetailsError": "Details für Anfrage #{{id}} nach Update nicht aktualisiert"
+  },
+  "admin": {
+    "logs": {
+      "title": "Systemprotokolle",
+      "level": "Ebene",
+      "timestamp": "Zeitstempel",
+      "source": "Quelle",
+      "message": "Nachricht",
+      "filterByLevel": "Nach Ebene filtern",
+      "startDate": "Startdatum",
+      "endDate": "Enddatum",
+      "searchPlaceholder": "In Nachricht und Quelle suchen",
+      "refresh": "Aktualisieren",
+      "clearAll": "Alle Protokolle löschen",
+      "clearConfirmTitle": "Alle Protokolle löschen?",
+      "clearConfirmDescription": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Protokolle werden dauerhaft gelöscht.",
+      "totalCount": "Gesamt: {{count}} Protokolle"
+    }
+  },
+  "common": {
+    "yes": "Ja",
+    "no": "Nein"
   }
 }

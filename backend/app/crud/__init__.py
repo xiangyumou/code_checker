@@ -5,6 +5,7 @@ from .crud_request import crud_request
 # Removed import for deleted crud_analysis_version
 # Import crud_setting
 from .crud_setting import crud_setting
+from .crud_log import log
 
 __all__ = [
     "CRUDBase",
@@ -12,4 +13,5 @@ __all__ = [
     "crud_request",
     # "crud_analysis_version", # Removed from __all__
     "crud_setting",
+    "log",
 ]

@@ -15,10 +15,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import crud, schemas, models # Import models for db object type hint
 from app.core.config import settings as app_settings # Import settings for upload dir
 from app.websockets.connection_manager import ConnectionManager # Import for type hint
+from app.core.logging import get_db_logger
 # Import RequestStatus if needed for type hints or logic later
 # from app.models.request import RequestStatus
 
 logger = logging.getLogger("app." + __name__) # Match logger name convention
+db_logger = get_db_logger("services.request")
 
 class RequestService:
     """
@@ -61,10 +63,11 @@ class RequestService:
             # Calculate relative path based on the '/app/data' directory
             data_base_path = Path(app_settings.BASE_DIR) / "data"
             relative_path = destination_path.relative_to(data_base_path).as_posix() # Store relative path (e.g., uploads/images/...)
-            logger.info(f"Successfully saved image: {image.filename} to {relative_path}")
+            logger.debug(f"Successfully saved image: {image.filename} to {relative_path}")
             return relative_path
         except IOError as e:
             logger.error(f"IOError saving image {image.filename}: {e}", exc_info=True)
+            await db_logger.error(self.db, f"Failed to save image {image.filename}: {str(e)}")
             # Clean up potentially partially written file
             if 'destination_path' in locals() and destination_path.exists():
                 try:
@@ -108,6 +111,7 @@ class RequestService:
 
         if (user_prompt is None or user_prompt.strip() == "") and not images:
             logger.warning("Create request attempt with effectively empty prompt and no images.")
+            await db_logger.warning(self.db, "Empty request creation attempt - no prompt or images")
             raise ValueError("Request must include either a non-empty text prompt or at least one image.") # Update error message slightly
 
         image_references: List[str] = []
@@ -120,6 +124,7 @@ class RequestService:
                 # Run save operations concurrently
                 image_references = await asyncio.gather(*save_tasks)
                 logger.info(f"Saved {len(image_references)} images.")
+                await db_logger.info(self.db, f"Saved {len(image_references)} images for new request")
             except (IOError, Exception) as e:
                 # If any image save fails, log and re-raise. Endpoint handles rollback.
                 logger.error(f"Error during image saving process: {e}", exc_info=True)
@@ -136,8 +141,18 @@ class RequestService:
                 image_references=image_references
             )
             logger.info(f"Created request record with ID: {db_request.id}")
+            await db_logger.info(
+                self.db,
+                f"Created analysis request {db_request.id}",
+                extra_data={
+                    "request_id": db_request.id,
+                    "has_prompt": bool(user_prompt),
+                    "image_count": len(image_references)
+                }
+            )
         except Exception as e:
             logger.error(f"Database error creating request: {e}", exc_info=True)
+            await db_logger.error(self.db, f"Database error creating request: {str(e)}")
             # No need to rollback here, endpoint handles it. Just re-raise.
             raise HTTPException(status_code=500, detail="Database error during request creation.") from e
 

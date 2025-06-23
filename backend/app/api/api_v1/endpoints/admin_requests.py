@@ -12,8 +12,10 @@ from app.services.openai_processor import process_analysis_request # For retry
 from app.services.request_service import RequestService # ADDED: Import RequestService
 # Import the WebSocket manager
 from app.websockets.connection_manager import manager
+from app.core.logging import get_db_logger
 
 logger = logging.getLogger(__name__)
+db_logger = get_db_logger("api.admin_requests")
 router = APIRouter()
 
 from pydantic import BaseModel # Import BaseModel
@@ -75,6 +77,17 @@ async def delete_request(
     logger.info(f"Admin user {current_user.username} attempting to delete request ID: {request_id}")
     # Use get_or_404 to ensure request exists before attempting removal
     request_to_delete = await crud.crud_request.get_or_404(db, id=request_id)
+    
+    # Log deletion to database
+    await db_logger.warning(
+        db,
+        f"Request {request_id} deleted by admin user {current_user.username}",
+        extra_data={
+            "request_id": request_id,
+            "deleted_by": current_user.username,
+            "user_id": current_user.id
+        }
+    )
 
     # remove method in CRUDBase likely returns the deleted object or None/True/False
     # Assuming it returns the deleted object based on response_model
@@ -108,6 +121,18 @@ async def retry_request_analysis(
     logger.info(f"Admin user {current_user.username} attempting to retry request ID: {request_id}")
     # Use get_or_404
     request = await crud.crud_request.get_or_404(db, id=request_id)
+    
+    # Log retry attempt
+    await db_logger.info(
+        db,
+        f"Request {request_id} retry initiated by admin user {current_user.username}",
+        extra_data={
+            "request_id": request_id,
+            "retried_by": current_user.username,
+            "user_id": current_user.id,
+            "previous_status": request.status.value
+        }
+    )
 
     # Allow retrying only failed requests? Or any non-completed?
     if request.status != schemas.RequestStatus.FAILED:
@@ -125,6 +150,11 @@ async def retry_request_analysis(
     if queue:
         await queue.put(updated_request.id)
         logger.info(f"Request ID {request_id} added to analysis queue for retry.")
+        await db_logger.info(
+            db,
+            f"Request {request_id} queued for retry",
+            extra_data={"request_id": request_id}
+        )
     else:
         logger.error(f"Analysis queue not available via app.state. Failed to queue request ID {request_id} for retry.")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal error: Task queue unavailable.")
@@ -157,6 +187,18 @@ async def batch_request_action(
     logger.info(f"Admin user {current_user.username} performing batch action '{action_data.action}' on requests: {action_data.request_ids}")
     results = {"success": [], "failed": []}
     processed_count = 0
+    
+    # Log batch operation start
+    await db_logger.info(
+        db,
+        f"Batch {action_data.action} operation started by {current_user.username}",
+        extra_data={
+            "action": action_data.action,
+            "request_count": len(action_data.request_ids),
+            "user_id": current_user.id,
+            "request_ids": action_data.request_ids
+        }
+    )
 
     if not action_data.request_ids:
         return {"message": "No request IDs provided.", "results": results}
@@ -185,6 +227,18 @@ async def batch_request_action(
         # Committing at the end is usually better for performance but less atomic per item
         await db.commit()
         message = f"Batch delete attempted. {processed_count} requests deleted."
+        
+        # Log batch delete completion
+        await db_logger.warning(
+            db,
+            f"Batch delete completed: {processed_count} requests deleted",
+            extra_data={
+                "deleted_count": processed_count,
+                "failed_count": len(results["failed"]),
+                "success_ids": results["success"],
+                "failed_ids": [f["id"] for f in results["failed"]]
+            }
+        )
 
     elif action_data.action == "retry":
         ids_to_process = [] # Collect IDs to process after the loop

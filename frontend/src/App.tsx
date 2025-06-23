@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Spin, Layout } from 'antd';
+import { Spin, Layout, App as AntdApp } from 'antd';
 import UserAppPage from './features/user/UserAppPage';
 import AdminLayout from './features/admin/layouts/AdminLayout';
 import LoginPage from './features/admin/pages/LoginPage';
@@ -76,7 +76,11 @@ const router = createBrowserRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <AntdApp>
+      <RouterProvider router={router} />
+    </AntdApp>
+  );
 }
 
 export default App;
