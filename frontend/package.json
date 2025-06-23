@@ -25,6 +25,7 @@
     "react-dom": "^19.0.0",
     "react-i18next": "^15.5.1",
     "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.5.2",
     "rehype-katex": "^7.0.1",
     "rehype-mermaid": "^3.0.0",
     "remark-gfm": "^4.0.1",

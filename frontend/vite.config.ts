@@ -12,8 +12,6 @@ export default defineConfig({
       '/api': {
         target: 'http://backend:8000', // Target the backend service name and port
         changeOrigin: true, // Needed for virtual hosted sites
-        // Optional: You might not need rewrite if backend expects /api/v1/...
-        // rewrite: (path) => path.replace(/^\/api/, ''), // Remove /api prefix if backend doesn't expect it
       },
       // Add proxy rule for WebSocket connections
       '/ws': {
@@ -22,9 +20,5 @@ export default defineConfig({
         changeOrigin: true, // May be needed depending on server setup
       },
     },
-    // Optional: Enable polling for HMR in Docker environments if needed
-    // watch: {
-    //   usePolling: true,
-    // },
   },
 })

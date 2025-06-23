@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dropdown, Button, MenuProps, Space } from 'antd';
 import { SunOutlined, MoonOutlined, DesktopOutlined } from '@ant-design/icons';
-import { useTheme, ThemeMode } from '../contexts/ThemeContext'; // Adjust path as needed
+import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
 
 const ThemeSwitcher: React.FC = () => {
   const { themeMode, setThemeMode } = useTheme();

@@ -26,7 +26,7 @@ services:
       # -------------------------------------------------
     # REMOVED command here to allow Dockerfile CMD (which includes alembic upgrade) to run
 
-  # Frontend service definition (ports kept)
+  # Frontend service definition
   frontend:
     build: ./frontend
     container_name: code_checker_frontend
@@ -41,25 +41,9 @@ services:
       - "5063:5173" # Map host 5063 to container 5173 (Vite default dev port)
     depends_on:
       - backend
-    command: npm run dev # Keep the correct command here
-
-  # Admin frontend service definition (ports kept)
-  admin_frontend:
-    build: ./admin-frontend # Corrected build context path
-    container_name: code_checker_admin_frontend
-    ports:
-      - "5064:5173" # Map host 5064 to Vite default dev port 5173
-    volumes:
-       - ./admin-frontend/src:/app/src # Corrected volume path
-       - ./admin-frontend/public:/app/public # Corrected volume path
-       # Mount shared library for unified communication
-       - ./shared:/app/shared
-       - /app/node_modules # Use node_modules from within the container
     environment:
-      NODE_ENV: development # Corrected format: key: value
-    depends_on:
-      - backend
-    command: npm run dev # Added command for admin frontend
+      NODE_ENV: development
+    command: npm run dev
 
   # --- New PostgreSQL service definition ---
   db:

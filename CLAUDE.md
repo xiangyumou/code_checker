@@ -6,15 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a code analysis and checking application built with a microservices architecture:
 - **Backend**: FastAPI with PostgreSQL database, WebSocket support, and OpenAI integration
-- **Frontend**: React/TypeScript application for end users
-- **Admin Frontend**: Separate React/TypeScript admin interface
+- **Frontend**: Unified React/TypeScript application for both end users and admin interface
 - **Infrastructure**: Docker Compose orchestration
 
 ## Common Development Commands
 
 ### Docker Development (Recommended)
 ```bash
-# Start all services (backend, frontend, admin-frontend, database)
+# Start all services (backend, frontend, database)
 docker-compose up
 
 # Rebuild and start services
@@ -26,7 +25,6 @@ docker-compose down
 # View logs for specific service
 docker-compose logs backend
 docker-compose logs frontend
-docker-compose logs admin_frontend
 ```
 
 ### Backend Development
@@ -54,7 +52,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ### Frontend Development
 ```bash
-cd frontend  # or cd admin-frontend
+cd frontend
 
 # Install dependencies
 npm install
@@ -87,12 +85,13 @@ npm run preview
 - **`tests/`**: pytest test suite with async support
 
 ### Frontend Architecture
-Both frontends follow similar patterns:
-- **`src/api/`**: API client functions using axios
-- **`src/components/`**: Reusable React components
+The unified frontend follows a feature-based structure:
+- **`src/features/user/`**: User-facing application components and logic
+- **`src/features/admin/`**: Admin panel components and logic
+- **`src/components/shared/`**: Shared React components
 - **`src/contexts/`**: React Context providers for state management
-- **`src/pages/`**: Page-level components and routing
-- **`src/types/`**: TypeScript type definitions
+- **`src/api/`**: Shared API functions
+- **`src/shared/`**: Shared types and utilities
 - **`public/locales/`**: i18n translation files (en, de, zh)
 
 ### Key Technologies
@@ -125,7 +124,6 @@ The application uses PostgreSQL with Alembic for migrations:
 - Mermaid diagram support for documentation and analysis visualization
 
 ## Service Ports (Docker)
-- Frontend: http://localhost:5063
-- Admin Frontend: http://localhost:5064
+- Frontend: http://localhost:5063 (User interface at /, Admin panel at /admin)
 - Backend API: accessible internally to frontend containers
 - Database: internal PostgreSQL service (not exposed)

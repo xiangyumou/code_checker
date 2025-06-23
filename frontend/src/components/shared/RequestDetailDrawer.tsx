@@ -21,8 +21,8 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeMermaid from 'rehype-mermaid';
 
-import { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem, RequestStatus } from '../types'; // Import existing types, Added RequestStatus
-import { regenerateAnalysis } from '../api/requests';
+import { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem, RequestStatus } from '../../shared/src/types/index'; // Import existing types, Added RequestStatus
+import { regenerateAnalysis } from '../../api/shared';
 
 // Define the expected structure within the gpt_raw_response JSON string
 interface GptResponseContent {
@@ -43,6 +43,7 @@ interface RequestDetailDrawerProps {
   requestData: AnalysisRequest | null; // Parent ensures this is loaded before opening
   isLoading: boolean; // Add isLoading prop to indicate when parent is fetching data
   onRegenerateSuccess?: (updatedRequest: AnalysisRequest) => void;
+  apiClient: any; // API client instance for making requests
 }
 
 // Helper function to highlight code blocks (remains the same)
@@ -86,7 +87,8 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
   onClose,
   requestData,
   isLoading, // Destructure isLoading prop
-  onRegenerateSuccess
+  onRegenerateSuccess,
+  apiClient
 }) => {
   const { t } = useTranslation(); // Initialize useTranslation hook
   const [activeTopTabKey, setActiveTopTabKey] = useState('original_submission'); // Default back to original submission tab
@@ -240,7 +242,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
       if (!requestData) return;
       setIsRegenerating(true);
       try {
-          const updatedRequest = await regenerateAnalysis(requestData.id);
+          const updatedRequest = await regenerateAnalysis(apiClient, requestData.id);
           message.success(t('requestDetails.regenerateSuccess', { id: requestData.id })); // Define new key
           if (onRegenerateSuccess) {
               onRegenerateSuccess(updatedRequest);

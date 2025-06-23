@@ -12,22 +12,15 @@ import { v4 as uuidv4 } from 'uuid'; // Import uuid
 
 // Import API functions and types
 import { getAdminAnalysisRequests, getAdminAnalysisRequestDetails } from '../api/adminRequests';
-import { useWebSocket } from '../lib/communication';
-import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../shared/src/types/index';
+import { useWebSocket, apiClient } from '../lib/communication';
+import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../../shared/src/types/index';
 
-// Import page components (adjust paths relative to layouts directory)
-import SettingsPage from '../pages/SettingsPage';
-import RequestManagementPage from '../pages/RequestManagementPage';
-import LogViewerPage from '../pages/LogViewerPage';
-// Import placeholder DashboardPage (will be created later)
-// Assuming DashboardPage will be in src/pages
-import DashboardPage from '../pages/DashboardPage'; // Ensure this path is correct
-import ThemeSwitcher from '../components/ThemeSwitcher'; // Import ThemeSwitcher
-import LanguageSwitcher from '../components/LanguageSwitcher'; // Import LanguageSwitcher
-import RequestDetailDrawer from '../components/RequestDetailDrawer'; // Import the drawer component
+import ThemeSwitcher from '../../../components/shared/ThemeSwitcher';
+import LanguageSwitcher from '../../../components/shared/LanguageSwitcher';
+import RequestDetailDrawer from '../../../components/shared/RequestDetailDrawer';
 
 // Import Auth context hook (adjust path)
-import { useAuth } from '../contexts/AuthContext'; // Corrected import path
+import { useAuth } from '../contexts/AuthContext';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
@@ -249,12 +242,12 @@ const MainLayout: React.FC = () => {
     // --- Menu and Breadcrumb Logic ---
     // Use t() function for menu labels
     const menuItems = [
-        { key: '/dashboard', icon: <DashboardOutlined />, label: t('dashboard') },
-        { key: '/requests', icon: <DatabaseOutlined />, label: t('requestManagement.title') }, // Use existing key
+        { key: '/admin/dashboard', icon: <DashboardOutlined />, label: t('dashboard') },
+        { key: '/admin/requests', icon: <DatabaseOutlined />, label: t('requestManagement.title') }, // Use existing key
         {
             key: 'monitoring', icon: <MonitorOutlined />, label: t('systemMonitoring.title'), // Define new key
             children: [
-                { key: '/logs', icon: <FileTextOutlined />, label: t('logs') }, // Use existing key
+                { key: '/admin/logs', icon: <FileTextOutlined />, label: t('logs') }, // Use existing key
                 // Add other monitoring links here later
             ],
         },
@@ -262,10 +255,10 @@ const MainLayout: React.FC = () => {
             key: 'settings', icon: <SettingOutlined />, label: t('settingsPage.title'), // Use existing key
             children: [
                 // Link directly to the main settings page for now
-                { key: '/settings', label: t('settingsPage.appAndProfile') }, // Define new key
+                { key: '/admin/settings', label: t('settingsPage.appAndProfile') }, // Define new key
                 // Could add direct links to tabs later if needed:
-                // { key: '/settings/app', label: t('settingsPage.appSettings') }, // Define new key
-                // { key: '/settings/profile', label: t('settingsPage.profileSettings') }, // Define new key
+                // { key: '/admin/settings/app', label: t('settingsPage.appSettings') }, // Define new key
+                // { key: '/admin/settings/profile', label: t('settingsPage.profileSettings') }, // Define new key
             ],
         },
     ];
@@ -289,7 +282,7 @@ const MainLayout: React.FC = () => {
             if (openKey) break;
         }
         // Special case for settings main page
-        if (path === '/settings' && !openKey) {
+        if (path === '/admin/settings' && !openKey) {
              const settingsParent = menuItems.find(item => item.key === 'settings');
              if (settingsParent) openKey = settingsParent.key;
         }
@@ -300,13 +293,13 @@ const MainLayout: React.FC = () => {
     // Generate Breadcrumb items using t()
     // Note: Keys in breadcrumbNameMap should match the translation keys for consistency
     const breadcrumbNameMap: Record<string, string> = {
-        '/dashboard': t('dashboard'),
-        '/requests': t('requestManagement.title'),
-        '/monitoring': t('systemMonitoring.title'), // Use the same new key as menu
-        '/logs': t('logs'),
-        '/settings': t('settingsPage.title'),
-        // '/settings/app': t('settingsPage.appSettings'), // Use the same new key as menu
-        // '/settings/profile': t('settingsPage.profileSettings'), // Use the same new key as menu
+        '/admin/dashboard': t('dashboard'),
+        '/admin/requests': t('requestManagement.title'),
+        '/admin/monitoring': t('systemMonitoring.title'), // Use the same new key as menu
+        '/admin/logs': t('logs'),
+        '/admin/settings': t('settingsPage.title'),
+        // '/admin/settings/app': t('settingsPage.appSettings'), // Use the same new key as menu
+        // '/admin/settings/profile': t('settingsPage.profileSettings'), // Use the same new key as menu
     };
 
     const pathSnippets = location.pathname.split('/').filter((i: string) => i);
@@ -315,7 +308,7 @@ const MainLayout: React.FC = () => {
         {
             key: 'home',
             // Use t() for the home breadcrumb link
-            title: <a onClick={() => navigate('/dashboard')}>{t('dashboard')}</a>,
+            title: <a onClick={() => navigate('/admin/dashboard')}>{t('dashboard')}</a>,
         },
         ...pathSnippets.map((_: string, index: number) => {
             const url = `/${pathSnippets.slice(0, index + 1).join('/')}`;
@@ -333,7 +326,7 @@ const MainLayout: React.FC = () => {
     // --- User Menu Logic ---
     const handleUserMenuClick = (e: { key: string }) => {
         if (e.key === 'profile') {
-            navigate('/settings'); // Navigate to settings page (tabs handle specifics)
+            navigate('/admin/settings'); // Navigate to settings page (tabs handle specifics)
         } else if (e.key === 'logout') {
             logout();
             // No need to navigate here, ProtectedRoute will handle redirect
@@ -411,9 +404,9 @@ const MainLayout: React.FC = () => {
                 open={detailDrawerRequestId !== null}
                 onClose={handleCloseRequestDetails}
                 requestData={selectedRequestDetails}
-                loading={detailDrawerRequestId !== null && selectedRequestDetails === null} // Show loading when drawer is open but details are not yet loaded/fetched
-                deletedRequestId={deletedRequestIdForDetailView} // Pass the deleted ID state
-                resetDeletedRequestId={resetDeletedRequestId} // Pass the reset function
+                isLoading={detailDrawerRequestId !== null && selectedRequestDetails === null} // Show loading when drawer is open but details are not yet loaded/fetched
+                apiClient={apiClient}
+                // Note: deletedRequestId and resetDeletedRequestId props are not part of the shared component interface
             />
         </Layout>
     );
