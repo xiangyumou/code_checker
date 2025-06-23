@@ -16,7 +16,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { username: string; password: string }) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -26,11 +26,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       });
       // Call the success callback provided by App.tsx
       onLoginSuccess(response.access_token);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Error message is shown by the API function using antd message
       // Set local error state if needed for Alert component
       // Use t() for default error message
-      setError(err.message || t('loginPage.errorMessage'));
+      setError(err instanceof Error ? err.message : t('loginPage.errorMessage'));
       console.error("Login page error:", err);
     } finally {
       setIsLoading(false);

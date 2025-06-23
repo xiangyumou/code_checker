@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'; // Added useMemo
 import { useOutletContext } from 'react-router-dom'; // Import useOutletContext
 import { Card, Typography, Row, Col, Statistic, Spin } from 'antd'; // Added Spin
 import { DatabaseOutlined, SyncOutlined, CloseCircleOutlined, CheckCircleOutlined } from '@ant-design/icons'; // Added CheckCircleOutlined
-import { AnalysisRequest } from '../types'; // Import type
+import { AnalysisRequest } from '../../../types/index'; // Import type
 
 const { Title } = Typography;
 

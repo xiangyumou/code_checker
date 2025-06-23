@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { List, Tag, Spin, Empty, Button, Skeleton, Tooltip, Typography, Space, theme } from 'antd'; // Added theme
 // Added specific icons for status
 import { SyncOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, QuestionCircleOutlined, ReloadOutlined, FileTextOutlined } from '@ant-design/icons'; // Added FileTextOutlined
-import { AnalysisRequest, RequestStatus, RequestSummary } from '../types'; // Import RequestSummary
+import { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/index'; // Import RequestSummary
 import dayjs from 'dayjs'; // Import dayjs for date formatting
 
 const { Text, Title } = Typography; // Destructure Title as well

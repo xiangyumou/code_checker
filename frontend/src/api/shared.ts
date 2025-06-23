@@ -1,5 +1,5 @@
 // Shared API functions used by both user and admin features
-import type { AnalysisRequest } from '../shared/src/types/index';
+import type { AnalysisRequest } from '../types/index';
 
 // Since this function needs to work with both user and admin contexts,
 // we'll accept the apiClient as a parameter

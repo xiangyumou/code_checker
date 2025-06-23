@@ -215,11 +215,6 @@
     "selectRequestsWarning": "Please select requests to {{action}}.",
     "batchActionInitiated": "Batch {{action}} initiated for {{count}} requests."
   },
-  "adminLayout": {
-    "websocketConnected": "Admin: Real-time status updates connected.",
-    "refreshDetailsError": "Failed to refresh full details for request #{{id}} after update.",
-    "loadDetailsError": "Failed to load details for request #{{id}}."
-  },
   "adminPanel": {
     "title": "Admin Panel"
   },
@@ -264,6 +259,7 @@
   "adminLayout": {
     "websocketConnected": "Real-time updates connected",
     "websocketReconnectFailed": "Failed to reconnect to real-time updates after multiple attempts",
-    "loadDetailsError": "Failed to refresh details for request #{{id}} after update"
+    "refreshDetailsError": "Failed to refresh full details for request #{{id}} after update.",
+    "loadDetailsError": "Failed to load details for request #{{id}}."
   }
 }

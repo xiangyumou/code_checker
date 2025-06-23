@@ -9,7 +9,7 @@ import type { RcFile, UploadFile, UploadProps } from 'antd/es/upload/interface';
 // Removed Monaco Editor imports
 
 import { createAnalysisRequest } from '../api/requests';
-import { SubmissionFormData } from '../types';
+import { SubmissionFormData } from '../../../types/index';
 
 const { TextArea } = Input;
 const { Dragger } = Upload;
@@ -72,7 +72,7 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmissionSuccess }) 
             return { uid: f.uid, base64 };
           } catch (error) {
             message.error(t('submissionForm.imageProcessingError', { name: f.name })); // Define new key
-            console.error("Base64 generation error:", error);
+            // Base64 generation error
             setFileList(prev => prev.map(pf => pf.uid === f.uid ? { ...pf, status: 'error' } : pf));
             return { uid: f.uid, base64: null };
           }
@@ -262,10 +262,10 @@ const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmissionSuccess }) 
       if (onSubmissionSuccess) {
         onSubmissionSuccess();
       }
-    } catch (error: any) {
-      const backendError = error?.response?.data?.detail;
+    } catch (error: unknown) {
+      const backendError = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail : undefined;
       message.error(backendError || t('submissionForm.errorMessage')); // Use existing key for default
-      console.error("Submission error:", error);
+      // Submission error
     } finally {
       setIsLoading(false);
     }

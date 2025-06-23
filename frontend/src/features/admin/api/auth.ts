@@ -46,15 +46,15 @@ export const adminLogin = async (payload: LoginPayload): Promise<LoginResponse> 
       }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Admin login error:", error);
-    const detail = error.response?.data?.detail || 'Login failed. Please check credentials.';
+    const detail = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail || 'Login failed. Please check credentials.' : 'Login failed. Please check credentials.';
     message.error(detail); // Show error message to user
     throw new Error(detail);
   }
 };
 import { apiClient } from '../lib/communication';
-import type { AdminUser } from '../../shared/src/types/index';
+import type { AdminUser } from '../../../types/index';
 
 // Define the structure for the profile update payload
 interface UpdateProfilePayload {
@@ -72,11 +72,11 @@ export const getMyProfile = async (): Promise<AdminUser> => {
     // This endpoint verifies the token and returns the user if valid
     // Use relative path - axiosInstance handles the base URL
     return await apiClient.post<AdminUser>('/login/test-token');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching user profile:", error);
-    const detail = error.response?.data?.detail || 'Failed to fetch user profile. Session might be invalid.';
+    const detail = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail || 'Failed to fetch user profile. Session might be invalid.' : 'Failed to fetch user profile. Session might be invalid.';
     // Avoid showing generic error if it's just an auth issue handled elsewhere (e.g., redirect)
-    if (error.response?.status !== 401 && error.response?.status !== 403) {
+    if (error instanceof Error && 'response' in error && (error as any).response?.status !== 401 && (error as any).response?.status !== 403) {
         message.error(detail);
     }
     throw new Error(detail); // Re-throw for potential handling by caller (e.g., logout)
@@ -117,16 +117,16 @@ export const updateMyProfile = async (payload: UpdateProfilePayload): Promise<Ad
     const result = await apiClient.put<AdminUser>('/admin/profile/me', dataToSend);
     message.success('Profile updated successfully!');
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating user profile:", error);
     // Handle specific 409 Conflict error for username explicitly
-    if (error.response?.status === 409) {
-         const detail = error.response?.data?.detail || 'Username already exists. Please choose another.';
+    if (error instanceof Error && 'response' in error && (error as any).response?.status === 409) {
+         const detail = (error as any).response?.data?.detail || 'Username already exists. Please choose another.';
          message.error(detail);
          throw new Error(detail); // Re-throw specific error
     } else {
         // Handle other errors (e.g., validation, server errors)
-        const detail = error.response?.data?.detail || 'Failed to update profile.';
+        const detail = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail || 'Failed to update profile.' : 'Failed to update profile.';
         message.error(detail);
         throw new Error(detail); // Re-throw generic error
     }

@@ -13,7 +13,7 @@ const { Title } = Typography;
 
 import SubmissionForm from './components/SubmissionForm';
 import RequestList from './components/RequestList';
-import type { AnalysisRequest, RequestSummary } from '../../../shared/src/types/index';
+import type { AnalysisRequest, RequestSummary } from '../../types/index';
 import RequestDetailDrawer from '../../components/shared/RequestDetailDrawer';
 import InitializationPage from './components/InitializationPage';
 import ThemeSwitcher from '../../components/shared/ThemeSwitcher';
@@ -47,7 +47,7 @@ function UserAppPage() {
       setAnalysisRequests(fetchedRequests);
     } catch (error) {
       message.error(t('app.fetchRequestsError'));
-      console.error("Fetch requests error:", error);
+      // Fetch requests error
     } finally {
       setLoadingRequests(false);
     }
@@ -102,7 +102,7 @@ function UserAppPage() {
       }));
     } catch (error) {
       message.error(t('app.fetchDetailsError', { id: requestId }));
-      console.error("Fetch request details error:", error);
+      // Fetch request details error
       setIsModalOpen(false);
       setSelectedRequest(null);
     } finally {
@@ -156,7 +156,7 @@ function UserAppPage() {
           const newRequestSummary = event.payload as RequestSummary;
           setAnalysisRequests((prevRequests: RequestSummary[]) => {
             if (prevRequests.some((req: RequestSummary) => req.id === newRequestSummary.id)) {
-              console.warn(`[Frontend WS] Request ${newRequestSummary.id} already exists. Updating.`);
+              // Request already exists. Updating.
               return prevRequests.map((req: RequestSummary) =>
                 req.id === newRequestSummary.id ? newRequestSummary : req
               );
@@ -195,7 +195,7 @@ function UserAppPage() {
                 setSelectedRequest(updatedDetails);
               })
               .catch((error) => {
-                console.error('Error refetching updated request details:', error);
+                // Error refetching updated request details
                 message.error(t('app.errorFetchingDetails'));
               })
               .finally(() => {

@@ -9,9 +9,9 @@ import { message } from 'antd';
 export const listLogFiles = async (): Promise<string[]> => {
   try {
     return await apiClient.get<string[]>('/admin/logs/');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error listing log files:", error);
-    const detail = error.response?.data?.detail || 'Failed to list log files.';
+    const detail = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail || 'Failed to list log files.' : 'Failed to list log files.';
     message.error(detail);
     throw new Error(detail);
   }
@@ -41,19 +41,19 @@ export const getLogContent = async (
         responseType: 'text', // Important: Ensure Axios treats response as text
         transformResponse: [(data) => data], // Prevent Axios from trying to parse JSON
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`Error fetching log content for ${filename}:`, error);
     // Try to parse potential JSON error detail from text response if status indicates error
     let detail = `Failed to fetch log file '${filename}'.`;
-    if (error.response?.data && typeof error.response.data === 'string') {
+    if (error instanceof Error && 'response' in error && (error as any).response?.data && typeof (error as any).response.data === 'string') {
         try {
-            const errorJson = JSON.parse(error.response.data);
+            const errorJson = JSON.parse((error as any).response.data);
             detail = errorJson.detail || detail;
         } catch (parseError) {
             // Ignore if response is not JSON
         }
-    } else if (error.response?.data?.detail) {
-         detail = error.response.data.detail;
+    } else if (error instanceof Error && 'response' in error && (error as any).response?.data?.detail) {
+         detail = (error as any).response.data.detail;
     }
     message.error(detail);
     throw new Error(detail);

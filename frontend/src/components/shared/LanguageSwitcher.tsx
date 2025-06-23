@@ -17,7 +17,7 @@ const LanguageSwitcher: React.FC = () => {
 
   // 处理语言选择变化的函数
   const handleChange = (value: string) => {
-    console.log(`Changing language to: ${value}`);
+    // Changing language to: ${value}
     i18n.changeLanguage(value); // 调用 i18next 的方法切换语言
   };
 

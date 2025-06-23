@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, Suspense } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
 // Added Typography, Divider, Alert, Skeleton, Tooltip, Row, Col
 // Import Image as AntdImage to avoid naming conflict
@@ -21,7 +21,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeMermaid from 'rehype-mermaid';
 
-import { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem, RequestStatus } from '../../shared/src/types/index'; // Import existing types, Added RequestStatus
+import { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem, RequestStatus } from '../../types/index'; // Import existing types, Added RequestStatus
 import { regenerateAnalysis } from '../../api/shared';
 
 // Define the expected structure within the gpt_raw_response JSON string
@@ -56,7 +56,7 @@ const highlightCode = (elementId: string) => {
                 hljs.highlightElement(block as HTMLElement);
             }
         } catch (error) {
-            console.error("Highlighting error:", error);
+            // Silently handle highlighting errors
         }
     }, 0);
 };
@@ -126,13 +126,13 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
                 if (typeof parsed === 'object' && parsed !== null) {
                     setParsedContent(parsed as GptResponseContent);
                     setParsingError(null);
-                    console.log("Successfully parsed/used GPT response:", parsed);
+                    // Successfully parsed/used GPT response
                 } else {
                     // This case might be redundant if the initial check is thorough, but kept for safety
                     throw new Error(t('requestDetails.parsingErrorInvalidObject')); // Use existing key
                 }
             } catch (error) {
-                console.error("Failed to parse/process GPT response:", error);
+                // Failed to parse/process GPT response
                 const errorMessage = error instanceof Error ? error.message : t('requestDetails.parsingErrorUnknown'); // Use existing key
                 setParsingError(t('requestDetails.parsingErrorGeneral', { error: errorMessage })); // Use existing key
                 setParsedContent(null);
@@ -193,7 +193,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
       setIsDiffLoading(false); // Set loading false after generation
       return generatedHtml;
     } catch (error) {
-        console.error("Diff generation error:", error);
+        // Diff generation error
         setIsDiffLoading(false);
         return `<p style="color: red;">${t('requestDetails.diffError', { error: error instanceof Error ? error.message : String(error) })}</p>`; // Use existing key
     }
@@ -251,7 +251,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
       } catch (error: any) {
           const backendError = error?.response?.data?.detail;
           message.error(backendError || t('requestDetails.regenerateError')); // Define new key
-          console.error("Regeneration error:", error);
+          // Regeneration error handled
       } finally {
           setIsRegenerating(false);
       }
@@ -348,7 +348,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
     // If original is missing but modified exists, diff might still be generated (showing full addition)
     if (!originalAvailable) {
          // Consider showing a message or the diff anyway
-         console.warn("Original code/prompt missing, diff might show full addition.");
+         // Original code/prompt missing, diff might show full addition.
          // return <Empty description={t('requestDetails.diffMissingSource')} />; // Define new key
     }
 
@@ -468,7 +468,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
             await navigator.clipboard.writeText(originalCode);
             message.success(t('requestDetails.copyCodeSuccess')); // Define new key
         } catch (err) {
-            console.error('复制失败:', err);
+            // Copy failed
             message.error(t('requestDetails.copyCodeErrorFailed')); // Define new key
         }
     };

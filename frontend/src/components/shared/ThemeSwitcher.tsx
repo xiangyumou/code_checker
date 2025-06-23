@@ -1,15 +1,17 @@
 import React from 'react';
 import { Dropdown, Button, MenuProps, Space } from 'antd';
 import { SunOutlined, MoonOutlined, DesktopOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
 
 const ThemeSwitcher: React.FC = () => {
   const { themeMode, setThemeMode } = useTheme();
+  const { t } = useTranslation();
 
   const handleMenuClick: MenuProps['onClick'] = (e) => {
     // Type assertion as MenuInfo might not strictly conform, but key is what we need
     const selectedMode = e.key as ThemeMode;
-    console.log(`[ThemeSwitcher] Mode selected: ${selectedMode}`);
+    // Theme mode selected: ${selectedMode}
     setThemeMode(selectedMode);
   };
 
@@ -17,17 +19,17 @@ const ThemeSwitcher: React.FC = () => {
     {
       key: 'light',
       icon: <SunOutlined />,
-      label: '亮色模式',
+      label: t('themeSwitcher.light'),
     },
     {
       key: 'dark',
       icon: <MoonOutlined />,
-      label: '暗色模式',
+      label: t('themeSwitcher.dark'),
     },
     {
       key: 'auto',
       icon: <DesktopOutlined />,
-      label: '跟随系统',
+      label: t('themeSwitcher.auto'),
     },
   ];
 
@@ -47,7 +49,7 @@ const ThemeSwitcher: React.FC = () => {
   return (
     <Dropdown menu={{ items, onClick: handleMenuClick, selectedKeys: [themeMode] }} placement="bottomRight">
       {/* Use a Button for better styling and interaction */}
-      <Button type="text" icon={<CurrentIcon />} shape="circle" aria-label="切换主题模式" />
+      <Button type="text" icon={<CurrentIcon />} shape="circle" aria-label={t('themeSwitcher.toggleAriaLabel')} />
        {/*
          Alternatively, show text alongside icon:
          <Button type="text" icon={<CurrentIcon />}>

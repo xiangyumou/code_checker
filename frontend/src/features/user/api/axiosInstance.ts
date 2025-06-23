@@ -45,13 +45,13 @@ axiosInstance.interceptors.response.use(
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
       const status = error.response.status;
-      const data = error.response.data as any; // Type assertion for data access
+      const data = error.response.data as { detail?: string | Array<{ loc: string[]; msg: string }> }; // Type assertion for data access
 
       // Extract detail message if available
       if (data && data.detail) {
           // Handle validation errors specifically (status 422)
           if (status === 422 && Array.isArray(data.detail)) {
-               errorMessage = `Validation Error: ${data.detail.map((err: any) => `${err.loc.join('.')} - ${err.msg}`).join(', ')}`;
+               errorMessage = `Validation Error: ${data.detail.map((err) => `${err.loc.join('.')} - ${err.msg}`).join(', ')}`;}
           } else if (typeof data.detail === 'string') {
               errorMessage = data.detail;
           } else {

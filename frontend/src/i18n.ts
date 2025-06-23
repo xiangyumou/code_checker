@@ -2,10 +2,10 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// 显式导入翻译文件
-import translationEN from '../public/locales/en-US/translation.json';
-import translationZH from '../public/locales/zh-CN/translation.json';
-import translationDE from '../public/locales/de-DE/translation.json';
+// Import translation files from src directory
+import translationEN from './locales/en-US/translation.json';
+import translationZH from './locales/zh-CN/translation.json';
+import translationDE from './locales/de-DE/translation.json';
 
 // 定义资源
 const resources = {

@@ -208,11 +208,6 @@
     "selectRequestsWarning": "Bitte wählen Sie Anfragen zum {{action}} aus.",
     "batchActionInitiated": "Batch-{{action}} für {{count}} Anfragen eingeleitet."
   },
-  "adminLayout": {
-    "websocketConnected": "Administrator: Echtzeit-Statusaktualisierungen verbunden.",
-    "refreshDetailsError": "Aktualisierung der vollständigen Details für Anfrage #{{id}} nach Update fehlgeschlagen.",
-    "loadDetailsError": "Laden der Details für Anfrage #{{id}} fehlgeschlagen."
-  },
   "adminPanel": {
     "title": "Admin-Panel"
   },
@@ -253,5 +248,11 @@
   "settingsPage": {
     "title": "Einstellungen",
     "appAndProfile": "App- und Profilweinstellungen"
+  },
+  "adminLayout": {
+    "websocketConnected": "Echtzeit-Updates verbunden",
+    "websocketReconnectFailed": "Verbindung zu Echtzeit-Updates nach mehreren Versuchen fehlgeschlagen",
+    "refreshDetailsError": "Fehler beim Aktualisieren der vollständigen Details für Anfrage #{{id}} nach Update.",
+    "loadDetailsError": "Fehler beim Laden der Details für Anfrage #{{id}}."
   }
 }

@@ -20,7 +20,7 @@ const InitializationPage: React.FC<InitializationPageProps> = ({ onInitializatio
   const [isSuccess, setIsSuccess] = useState(false); // State to show success message
   const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0); // State for current step
-  const [allStepsData, setAllStepsData] = useState<any>({}); // State to accumulate data across steps
+  const [allStepsData, setAllStepsData] = useState<Record<string, unknown>>({}); // State to accumulate data across steps
 
   // Define steps using translation keys
   const steps = [
@@ -29,7 +29,7 @@ const InitializationPage: React.FC<InitializationPageProps> = ({ onInitializatio
       { title: t('initializationPage.steps.advancedConfig'), fields: ['system_prompt', 'max_concurrent_analysis_tasks', 'parallel_openai_requests_per_prompt', 'max_total_openai_attempts_per_prompt', 'request_timeout_seconds'] }, // Define new key
   ];
 
-  const onFinish = async (finalStepValues: any) => {
+  const onFinish = async (finalStepValues: Record<string, unknown>) => {
     setIsLoading(true);
     setError(null);
     setIsSuccess(false);
@@ -69,11 +69,11 @@ const InitializationPage: React.FC<InitializationPageProps> = ({ onInitializatio
       setTimeout(() => {
           onInitializationSuccess();
       }, 1500); // Delay for 1.5 seconds
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Try to extract a more specific error message if available
-      const backendError = err?.response?.data?.detail;
-      setError(backendError || err.message || t('initializationPage.errorMessageDefault')); // Define new key
-      console.error("Initialization error:", err);
+      const backendError = err instanceof Error && 'response' in err ? (err as any).response?.data?.detail : undefined;
+      setError(backendError || (err instanceof Error ? err.message : String(err)) || t('initializationPage.errorMessageDefault')); // Define new key
+      // Initialization error
     } finally {
       // Don't set loading to false immediately on success, wait for transition
       if (!isSuccess) {
@@ -92,12 +92,12 @@ const handleNext = async () => {
         setError(null); // Clear previous errors
 
         // Store current step's data
-        setAllStepsData((prevData: Record<string, any>) => ({ ...prevData, ...currentValues }));
+        setAllStepsData((prevData: Record<string, unknown>) => ({ ...prevData, ...currentValues }));
 
         // Move to the next step
         setCurrentStep(currentStep + 1);
     } catch (errorInfo) {
-        console.log('Validation Failed:', errorInfo);
+        // Validation Failed
         // Antd form shows inline errors
     }
 };

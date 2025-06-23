@@ -1,6 +1,6 @@
 import { apiClient } from '../lib/communication';
 // Import specific types from the shared library
-import type { RequestStatus, AnalysisRequest, SubmissionFormData, RequestSummary } from '../../shared/src/types/index';
+import type { RequestStatus, AnalysisRequest, SubmissionFormData, RequestSummary } from '../../../types/index';
 
 // Use SubmissionFormData for the payload type
 type CreateRequestPayload = SubmissionFormData;
@@ -40,7 +40,7 @@ export const createAnalysisRequest = async (payload: CreateRequestPayload): Prom
           formData.append('images', imageFile, imageFile.name);
         } else {
           // This case should ideally not happen anymore if SubmissionForm sends File[]
-          console.warn("Skipping unexpected non-File item in images array:", imageFile);
+          // Skipping unexpected non-File item in images array
         }
       });
     }
@@ -48,7 +48,7 @@ export const createAnalysisRequest = async (payload: CreateRequestPayload): Prom
     // Send the FormData object. Axios will automatically set Content-Type to multipart/form-data.
     return await apiClient.post<AnalysisRequest>('/requests/', formData);
   } catch (error) {
-    console.error("Error creating analysis request:", error);
+    // Error creating analysis request
     // Re-throw or handle error as needed (e.g., show notification)
     throw error;
   }
@@ -73,7 +73,7 @@ export const getAnalysisRequests = async (
     }
     return await apiClient.get<RequestSummary[]>('/requests/', { params });
   } catch (error) {
-    console.error("Error fetching analysis requests:", error);
+    // Error fetching analysis requests
     throw error;
   }
 };
@@ -87,7 +87,7 @@ export const getAnalysisRequestDetails = async (requestId: number): Promise<Anal
   try {
     return await apiClient.get<AnalysisRequest>(`/requests/${requestId}`);
   } catch (error) {
-    console.error(`Error fetching details for request ${requestId}:`, error);
+    // Error fetching details for request
     throw error;
   }
 };
@@ -101,7 +101,7 @@ export const regenerateAnalysis = async (requestId: number): Promise<AnalysisReq
   try {
     return await apiClient.post<AnalysisRequest>(`/requests/${requestId}/regenerate`);
   } catch (error) {
-    console.error(`Error regenerating analysis for request ${requestId}:`, error);
+    // Error regenerating analysis for request
     throw error;
   }
 };

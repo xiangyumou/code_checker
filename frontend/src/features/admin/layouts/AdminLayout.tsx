@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'; // Removed createContext, useContext (not used directly here)
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'; // Added useMemo
 import { Routes, Route, Navigate, useLocation, useNavigate, Outlet } from 'react-router-dom'; // Added Outlet
 import { Layout, Menu, Spin, Button, Typography, theme, message, Breadcrumb, Dropdown, Avatar, Space } from 'antd';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from 'uuid'; // Import uuid
 // Import API functions and types
 import { getAdminAnalysisRequests, getAdminAnalysisRequestDetails } from '../api/adminRequests';
 import { useWebSocket, apiClient } from '../lib/communication';
-import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../../shared/src/types/index';
+import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/index';
 
 import ThemeSwitcher from '../../../components/shared/ThemeSwitcher';
 import LanguageSwitcher from '../../../components/shared/LanguageSwitcher';
@@ -37,6 +37,10 @@ const MainLayout: React.FC = () => {
     // *** Lifted State ***
     const [requests, setRequests] = useState<RequestSummary[]>([]); // Changed type to RequestSummary[]
     const [loadingRequests, setLoadingRequests] = useState(false);
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [totalRequests, setTotalRequests] = useState(0);
     // State for caching full request details
     const [requestDetailsCache, setRequestDetailsCache] = useState<Record<number, AnalysisRequest>>({});
     // State for the currently selected full request details for the drawer
@@ -60,21 +64,29 @@ const MainLayout: React.FC = () => {
         setDeletedRequestIdForDetailView(null);
     }, []);
 
-    // *** Lifted fetchData Function ***
-    const fetchData = useCallback(async () => {
-        // TODO: Add pagination/filter/sort params if needed later
+    // *** Lifted fetchData Function with Pagination ***
+    const fetchData = useCallback(async (page: number = currentPage, size: number = pageSize, status?: RequestStatus) => {
         setLoadingRequests(true);
         try {
-            // Fetch all for now, adjust params as needed
-            const fetchedRequests = await getAdminAnalysisRequests(undefined, 0, 500); // Fetch more initially?
+            // Calculate skip offset for pagination
+            const skip = (page - 1) * size;
+            const fetchedRequests = await getAdminAnalysisRequests(status, skip, size);
             setRequests(fetchedRequests);
+            // Note: Backend should return total count for proper pagination
+            // For now, if we get less than pageSize, assume we're at the end
+            if (fetchedRequests.length < size) {
+                setTotalRequests((page - 1) * size + fetchedRequests.length);
+            } else {
+                // Estimate total (backend should provide actual total)
+                setTotalRequests(page * size + 1); // +1 to show there might be more
+            }
         } catch (error) {
-            message.error('Failed to fetch analysis requests.');
-            console.error("Fetch admin requests error:", error);
+            message.error(t('adminRequests.fetchError'));
+            // Fetch admin requests error
         } finally {
             setLoadingRequests(false);
         }
-    }, []); // Empty dependency array for now
+    }, [currentPage, pageSize, t]);
     // *** End Lifted fetchData Function ***
 
     // Close request details handler (needs to be defined before WebSocket useEffect)
@@ -86,6 +98,10 @@ const MainLayout: React.FC = () => {
     // *** WebSocket Logic (Using unified manager) ***
     const webSocketHook = useWebSocket;
     const wsConnectedRef = useRef(false);
+    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectAttemptsRef = useRef(0);
+    const maxReconnectAttempts = 5;
+    const reconnectDelayMs = 3000;
 
     useEffect(() => {
         if (wsConnectedRef.current) {
@@ -95,23 +111,34 @@ const MainLayout: React.FC = () => {
         // Set up event handlers using the unified manager
         const cleanupHandlers = [
             webSocketHook.on('connection_established', () => {
-                console.log('[Admin MainLayout] WebSocket connected');
-                message.success('Admin: Real-time status updates connected.');
+                // Admin MainLayout WebSocket connected
+                message.success(t('adminLayout.websocketConnected'));
                 wsConnectedRef.current = true;
+                reconnectAttemptsRef.current = 0; // Reset reconnect attempts on successful connection
             }),
             
             webSocketHook.on('connection_lost', () => {
-                console.log('[Admin MainLayout] WebSocket disconnected');
+                // Admin MainLayout WebSocket disconnected
                 wsConnectedRef.current = false;
+                // Attempt to reconnect with exponential backoff
+                if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+                    const delay = reconnectDelayMs * Math.pow(2, reconnectAttemptsRef.current);
+                    reconnectTimeoutRef.current = setTimeout(() => {
+                        reconnectAttemptsRef.current += 1;
+                        webSocketHook.connect();
+                    }, delay);
+                } else {
+                    message.error(t('adminLayout.websocketReconnectFailed'));
+                }
             }),
 
             webSocketHook.on('request_created', (event) => {
                 const payload = event.payload as RequestSummary;
-                console.log('[Admin MainLayout] Request created:', payload);
+                // Admin MainLayout Request created
                 setRequests((prevRequests: RequestSummary[]) => {
                     // Avoid adding duplicates
                     if (prevRequests.some((req: RequestSummary) => req.id === payload.id)) {
-                        console.warn(`[Admin WS] Request ${payload.id} already exists, likely due to race condition. Updating instead.`);
+                        // Request already exists, likely due to race condition. Updating instead.
                         return prevRequests.map((req: RequestSummary) =>
                             req.id === payload.id ? payload : req
                         );
@@ -123,7 +150,7 @@ const MainLayout: React.FC = () => {
 
             webSocketHook.on('request_updated', (event) => {
                 const payload = event.payload as Partial<RequestSummary> & { id: number };
-                console.log('[Admin MainLayout] Request updated:', payload);
+                // Admin MainLayout Request updated
                 
                 // Get current selected details from ref for accurate comparison
                 const currentSelectedDetails = selectedRequestDetailsRef.current;
@@ -151,8 +178,8 @@ const MainLayout: React.FC = () => {
                             }));
                         })
                         .catch((error: Error) => {
-                            console.error(`[Admin WS] Error refetching FULL details for request ${payload.id} after update:`, error);
-                            message.error(`Failed to refresh full details for request #${payload.id} after update.`);
+                            // Error refetching FULL details for request after update
+                            message.error(t('adminLayout.refreshDetailsError', { id: payload.id }));
                             // Keep the partially updated state in case of full fetch error
                         });
                     // --- End Asynchronous Full Refetch ---
@@ -170,7 +197,7 @@ const MainLayout: React.FC = () => {
 
             webSocketHook.on('request_deleted', (event) => {
                 const payload = event.payload as { id: number };
-                console.log('[Admin MainLayout] Request deleted:', payload);
+                // Admin MainLayout Request deleted
                 const deletedId = payload.id;
 
                 // Check if the deleted request's detail drawer is currently open
@@ -201,15 +228,29 @@ const MainLayout: React.FC = () => {
 
         // Cleanup function
         return () => {
-            console.log('[Admin MainLayout] Cleaning up WebSocket handlers');
+            // Admin MainLayout Cleaning up WebSocket handlers
             // Call all cleanup handlers to remove event listeners
             cleanupHandlers.forEach(cleanup => cleanup());
+            // Clear any pending reconnection attempts
+            if (reconnectTimeoutRef.current) {
+                clearTimeout(reconnectTimeoutRef.current);
+                reconnectTimeoutRef.current = null;
+            }
             // Disconnect from WebSocket
             webSocketHook.disconnect();
             wsConnectedRef.current = false;
         };
     }, [webSocketHook, detailDrawerRequestId, deletedRequestIdForDetailView, handleCloseRequestDetails]); // Dependencies needed for the handlers
     // *** End WebSocket Logic ***
+
+    // Pagination handlers
+    const handlePageChange = useCallback((page: number, size?: number) => {
+        setCurrentPage(page);
+        if (size && size !== pageSize) {
+            setPageSize(size);
+        }
+        fetchData(page, size || pageSize);
+    }, [fetchData, pageSize]);
 
     // Fetch initial data when MainLayout mounts
     useEffect(() => {
@@ -229,8 +270,8 @@ const MainLayout: React.FC = () => {
                 setSelectedRequestDetails(details);
                 setRequestDetailsCache((prev: Record<number, AnalysisRequest>) => ({ ...prev, [requestId]: details }));
             } catch (error) {
-                console.error(`[MainLayout] Error fetching details for request ${requestId}:`, error);
-                message.error(`Failed to load details for request #${requestId}.`);
+                // Error fetching details for request
+                message.error(t('adminLayout.loadDetailsError', { id: requestId }));
                 // Optionally close drawer on error, or let drawer display an error state
                 // setDetailDrawerRequestId(null);
             }
@@ -323,21 +364,21 @@ const MainLayout: React.FC = () => {
     ];
 
 
-    // --- User Menu Logic ---
-    const handleUserMenuClick = (e: { key: string }) => {
+    // --- User Menu Logic - memoized ---
+    const handleUserMenuClick = useCallback((e: { key: string }) => {
         if (e.key === 'profile') {
             navigate('/admin/settings'); // Navigate to settings page (tabs handle specifics)
         } else if (e.key === 'logout') {
             logout();
             // No need to navigate here, ProtectedRoute will handle redirect
         }
-    };
+    }, [navigate, logout]);
 
-    // Use t() for user menu items
-    const userMenuItems = [
+    // Use t() for user menu items - memoized
+    const userMenuItems = useMemo(() => [
         { key: 'profile', icon: <UserOutlined />, label: t('userMenu.profile') }, // Define new key
         { key: 'logout', icon: <LogoutOutlined />, label: t('logout') }, // Use existing key
-    ];
+    ], [t]);
 
     // Get username from context
     const username = user?.username || 'Admin'; // Use user from useAuth()
@@ -353,8 +394,8 @@ const MainLayout: React.FC = () => {
                     theme="dark"
                     mode="inline"
                     selectedKeys={[selectedKey]}
-                    defaultOpenKeys={openKey} // Use defaultOpenKeys for initial render
-                    onClick={({ key }: { key: string }) => navigate(key)} // Added explicit type for key
+                    defaultOpenKeys={openKey}
+                    onClick={({ key }: { key: string }) => navigate(key)}
                     items={menuItems}
                 />
             </Sider>
@@ -392,6 +433,11 @@ const MainLayout: React.FC = () => {
                              detailDrawerRequestId,
                              handleOpenRequestDetails, // Pass implemented function
                              handleCloseRequestDetails, // Pass implemented function
+                             // Pagination props
+                             currentPage,
+                             pageSize,
+                             totalRequests,
+                             handlePageChange,
                              // Removed direct setters unless absolutely necessary elsewhere
                          }} />
                     </div>
@@ -404,7 +450,7 @@ const MainLayout: React.FC = () => {
                 open={detailDrawerRequestId !== null}
                 onClose={handleCloseRequestDetails}
                 requestData={selectedRequestDetails}
-                isLoading={detailDrawerRequestId !== null && selectedRequestDetails === null} // Show loading when drawer is open but details are not yet loaded/fetched
+                isLoading={detailDrawerRequestId !== null && selectedRequestDetails === null}
                 apiClient={apiClient}
                 // Note: deletedRequestId and resetDeletedRequestId props are not part of the shared component interface
             />

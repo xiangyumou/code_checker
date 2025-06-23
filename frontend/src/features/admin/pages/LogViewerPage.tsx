@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { SyncOutlined } from '@ant-design/icons';
 import { listLogFiles, getLogContent } from '../api/logs';
 
-const { Option } = Select;
+// Option is deprecated, using options prop for Select instead
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
@@ -74,11 +74,12 @@ const LogViewerPage: React.FC = () => {
                         value={selectedFile}
                         onChange={(value) => setSelectedFile(value)}
                         disabled={loadingFiles || logFiles.length === 0}
-                    >
-                        {logFiles.map(file => (
-                            <Option key={file} value={file}>{file}</Option>
-                        ))}
-                    </Select>
+                        options={logFiles.map(file => ({
+                            key: file,
+                            value: file,
+                            label: file
+                        }))}
+                    />
                     {/* Remove generic type constraint, allow component to handle null */}
                     <InputNumber
                         min={1}

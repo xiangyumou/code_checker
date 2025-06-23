@@ -215,11 +215,6 @@
     "selectRequestsWarning": "请选择要{{action}}的请求。",
     "batchActionInitiated": "已为 {{count}} 个请求启动批{{action}}。"
   },
-  "adminLayout": {
-    "websocketConnected": "管理员：实时状态更新已连接。",
-    "refreshDetailsError": "更新后刷新请求 #{{id}} 的完整详细信息失败。",
-    "loadDetailsError": "加载请求 #{{id}} 的详细信息失败。"
-  },
   "adminPanel": {
     "title": "管理面板"
   },
@@ -260,5 +255,11 @@
   "settingsPage": {
     "title": "设置",
     "appAndProfile": "应用和个人资料设置"
+  },
+  "adminLayout": {
+    "websocketConnected": "实时更新已连接",
+    "websocketReconnectFailed": "多次尝试后无法重新连接到实时更新",
+    "refreshDetailsError": "更新后刷新请求 #{{id}} 的完整详细信息失败。",
+    "loadDetailsError": "加载请求 #{{id}} 的详细信息失败。"
   }
 }

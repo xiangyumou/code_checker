@@ -2,7 +2,7 @@ import React, { useState, createContext, useContext, useEffect, useCallback } fr
 import { useNavigate } from 'react-router-dom';
 import { getMyProfile } from '../api/auth'; // Adjust path if needed
 import { updateAuthToken } from '../lib/communication'; // Import token update function
-import { AdminUser } from '../types'; // Adjust path if needed
+import { AdminUser } from '../../../types/index'; // Import from shared types
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -20,6 +20,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true); // Start loading initially
   const navigate = useNavigate();
 
+  const logout = useCallback(() => {
+    localStorage.removeItem('admin_token');
+    setToken(null);
+    setUser(null);
+    // Navigate to login page after state updates
+    navigate('/login', { replace: true });
+  }, [navigate]);
+
   const fetchUserProfile = useCallback(async (currentToken: string) => {
     try {
       // Ensure the token is passed correctly if needed by getMyProfile
@@ -31,7 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If profile fetch fails (e.g., invalid token), log out
       logout();
     }
-  }, []); // Removed navigate dependency, logout handles navigation
+  }, [logout]);
 
   // Check authentication status and fetch profile on mount or token change
   useEffect(() => {
@@ -61,14 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const logout = () => {
-    localStorage.removeItem('admin_token');
-    setToken(null);
-    setUser(null);
-    // Navigate to login page after state updates
-    // Use navigate directly here or rely on ProtectedRoute redirect
-    navigate('/login', { replace: true });
-  };
 
   const isAuthenticated = !!token && !!user; // Consider authenticated only if token AND user exist
 

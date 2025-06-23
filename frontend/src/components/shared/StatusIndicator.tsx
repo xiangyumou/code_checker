@@ -1,6 +1,7 @@
 import React from 'react';
 import { Spin, Result, theme, Typography } from 'antd'; // Added theme, Typography
 import { LoadingOutlined, CloseCircleOutlined, ClockCircleOutlined } from '@ant-design/icons'; // Added ClockCircleOutlined
+import { useTranslation } from 'react-i18next';
 
 const { useToken } = theme; // Import useToken
 const { Paragraph } = Typography; // Import Paragraph
@@ -12,6 +13,7 @@ interface StatusIndicatorProps {
 
 const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, message }) => {
   const { token } = useToken(); // Get theme tokens
+  const { t } = useTranslation();
 
   // Common style for the wrapper div
   const wrapperStyle: React.CSSProperties = {
@@ -34,7 +36,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, message }) =>
           size="large"
         />
         <Paragraph style={{ marginTop: '16px', color: token.colorTextSecondary }}>
-          {message || "正在处理中，请稍候..."}
+          {message || t('statusIndicator.processing')}
         </Paragraph>
       </div>
     );
@@ -46,7 +48,7 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, message }) =>
          {/* Use an icon instead of Spin for queued state */}
          <ClockCircleOutlined style={{ fontSize: 36, color: token.colorTextSecondary, marginBottom: '16px' }} />
          <Paragraph style={{ color: token.colorTextSecondary }}>
-           {message || "请求已加入队列，等待处理..."}
+           {message || t('statusIndicator.queued')}
          </Paragraph>
       </div>
     );
@@ -58,8 +60,8 @@ const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status, message }) =>
         <Result
           status="error" // This will use token.colorError internally
           icon={<CloseCircleOutlined style={{ fontSize: 36 }} />} // Slightly smaller icon
-          title={<span style={{ color: token.colorError }}>分析失败</span>} // Explicitly color title
-          subTitle={<Paragraph type="secondary">{message || '无法完成分析，请检查输入或稍后重试。'}</Paragraph>}
+          title={<span style={{ color: token.colorError }}>{t('statusIndicator.failed')}</span>} // Explicitly color title
+          subTitle={<Paragraph type="secondary">{message || t('statusIndicator.failedDescription')}</Paragraph>}
           style={{ padding: 0 }} // Remove default Result padding
         />
       </div>

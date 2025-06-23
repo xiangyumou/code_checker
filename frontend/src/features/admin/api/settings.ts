@@ -1,6 +1,7 @@
 import { apiClient } from '../lib/communication';
 import { message } from 'antd';
-import type { AppSettings } from '../../shared/src/types/index';
+import i18n from 'i18next';
+import type { AppSettings } from '../../../types/index';
 
 // Type for the settings object (keys are strings, values can be any type initially)
 // export type SettingsData = Record<string, any>; // Replaced by AppSettings
@@ -14,9 +15,9 @@ export const getSettings = async (): Promise<AppSettings> => {
   try {
     // Expect the response data to conform to the AppSettings interface
     return await apiClient.get<AppSettings>('/admin/settings/');
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching settings:", error);
-    const detail = error.response?.data?.detail || 'Failed to fetch settings.';
+    const detail = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail || i18n.t('admin.settings.fetchError') : i18n.t('admin.settings.fetchError');
     message.error(detail);
     throw new Error(detail);
   }
@@ -35,11 +36,11 @@ export const updateSettings = async (settingsToUpdate: Partial<AppSettings>): Pr
     const payload = { settings: settingsToUpdate };
     // Expect the response data (updated settings) to conform to AppSettings
     const result = await apiClient.put<AppSettings>('/admin/settings/', payload);
-    message.success('Settings updated successfully!');
+    message.success(i18n.t('admin.settings.updateSuccess'));
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating settings:", error);
-    const detail = error.response?.data?.detail || 'Failed to update settings.';
+    const detail = error instanceof Error && 'response' in error ? (error as any).response?.data?.detail || i18n.t('admin.settings.updateError') : i18n.t('admin.settings.updateError');
     message.error(detail);
     throw new Error(detail);
   }

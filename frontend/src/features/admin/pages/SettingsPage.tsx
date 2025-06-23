@@ -5,11 +5,11 @@ import { SaveOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'; // Import for redirection
 import { getSettings, updateSettings } from '../api/settings';
 import { getMyProfile, updateMyProfile } from '../api/auth'; // Import profile API functions
-import { AppSettings, AdminUser } from '../types'; // Import types
+import { AppSettings, AdminUser } from '../../../types/index'; // Import types
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
-const { TabPane } = Tabs; // Add TabPane
+// TabPane is deprecated, using items prop for Tabs instead
 
 // Define which settings are expected and their types for the form
 // This helps with rendering the correct input type and validation
@@ -72,7 +72,7 @@ const SettingsPage: React.FC = () => {
 
       } catch (error) {
         // Error handled by API functions, maybe add specific handling here if needed
-        console.error("Error fetching initial data:", error);
+        // Error fetching initial data
         // If profile fetch fails (e.g., 401), App component might handle redirect
       } finally {
         setSettingsLoading(false);
@@ -118,7 +118,7 @@ const SettingsPage: React.FC = () => {
         return;
     }
 
-    console.log("Updating application settings:", settingsToUpdate);
+    // Updating application settings
 
     try {
       const updatedSettingsData = await updateSettings(settingsToUpdate);
@@ -129,7 +129,7 @@ const SettingsPage: React.FC = () => {
       message.success(t('settingsPage.appSettingsSaveSuccess')); // Define new key
     } catch (error) {
       // Error handled by API function message (already includes message.error)
-      console.error("Failed to save application settings:", error);
+      // Failed to save application settings
     } finally {
       setSettingsSaving(false);
     }
@@ -166,7 +166,7 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
-    console.log("Updating profile with payload:", profileUpdatePayload);
+    // Updating profile
 
     try {
       const updatedUserData = await updateMyProfile(profileUpdatePayload);
@@ -189,7 +189,7 @@ const SettingsPage: React.FC = () => {
 
     } catch (error) {
       // Error message is shown by the updateMyProfile function
-      console.error("Failed to update profile:", error);
+      // Failed to update profile
       // Optionally reset username field back to original if update failed?
       // profileForm.setFieldsValue({ admin_username: adminUser.username });
     } finally {
@@ -249,8 +249,12 @@ const SettingsPage: React.FC = () => {
 
 
   if (loading) {
-    // Use t() for Spin tip
-    return <Spin tip={t('settingsPage.loadingConfig')} />; // Define new key
+    // Use t() for Spin tip with proper container
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <Spin size="large" tip={t('settingsPage.loadingConfig')} />
+      </div>
+    );
   }
 
   // Basic password validation rule (e.g., min 8 chars) - adjust as needed
@@ -265,12 +269,15 @@ const SettingsPage: React.FC = () => {
   return (
     <Card> {/* Wrap everything in a single Card */}
         <Title level={2} style={{ marginBottom: '24px' }}>{t('settingsPage.title')}</Title>
-        <Tabs defaultActiveKey="appSettings" type="line"> {/* Use Tabs for layout */}
-            {/* Tab 1: Application Settings */}
-            <TabPane
-                tab={<span><AppstoreOutlined /> {t('settingsPage.tabApp')}</span>} // Define new key
-                key="appSettings"
-            >
+        <Tabs 
+            defaultActiveKey="appSettings" 
+            type="line"
+            items={[
+                {
+                    key: "appSettings",
+                    label: <span><AppstoreOutlined /> {t('settingsPage.tabApp')}</span>,
+                    children: (
+                        <>
                 <Alert
                     message={t('settingsPage.restartNoteTitle')} // Define new key
                     description={t('settingsPage.restartNoteDescription')} // Define new key
@@ -288,54 +295,53 @@ const SettingsPage: React.FC = () => {
                         </Button>
                     </Form.Item>
                 </Form>
-            </TabPane>
-
-            {/* Tab 2: Admin Profile Settings */}
-            <TabPane
-                tab={<span><UserOutlined /> {t('settingsPage.tabProfile')}</span>} // Define new key
-                key="profile"
-            >
-                {adminUser ? (
-                    <Form form={profileForm} layout="vertical" onFinish={onProfileFinish} style={{ maxWidth: '500px' }}> {/* Limit width */}
-                        <Form.Item
-                            label={t('settingsPage.profileUsernameLabel')} // Define new key
-                            name="admin_username"
-                            rules={[{ required: true, message: t('settingsPage.profileUsernameRequired') }]} // Define new key
-                            tooltip={t('settingsPage.profileUsernameTooltip')} // Define new key
-                        >
-                            <Input />
-                        </Form.Item>
-                        <Form.Item
-                            label={t('settingsPage.profileNewPasswordLabel')} // Define new key
-                            name="admin_password"
-                            rules={[
-                                {
-                                    validator(_, value) {
-                                        if (value && value.length < 8) {
-                                            // Use t() for validation message
-                                            return Promise.reject(new Error(t('settingsPage.passwordMinLengthError'))); // Use same key
+                        </>
+                    )
+                },
+                {
+                    key: "profile",
+                    label: <span><UserOutlined /> {t('settingsPage.tabProfile')}</span>,
+                    children: (
+                        adminUser ? (
+                            <Form form={profileForm} layout="vertical" onFinish={onProfileFinish} style={{ maxWidth: '500px' }}>
+                                <Form.Item
+                                    label={t('settingsPage.profileUsernameLabel')}
+                                    name="admin_username"
+                                    rules={[{ required: true, message: t('settingsPage.profileUsernameRequired') }]}
+                                    tooltip={t('settingsPage.profileUsernameTooltip')}
+                                >
+                                    <Input />
+                                </Form.Item>
+                                <Form.Item
+                                    label={t('settingsPage.profileNewPasswordLabel')}
+                                    name="admin_password"
+                                    rules={[
+                                        {
+                                            validator(_, value) {
+                                                if (value && value.length < 8) {
+                                                    return Promise.reject(new Error(t('settingsPage.passwordMinLengthError')));
+                                                }
+                                                return Promise.resolve();
+                                            },
                                         }
-                                        return Promise.resolve();
-                                    },
-                                }
-                            ]}
-                            tooltip={t('settingsPage.profileNewPasswordTooltip')} // Define new key
-                        >
-                            {/* Use t() for placeholder */}
-                            <Input.Password placeholder={t('settingsPage.profileNewPasswordPlaceholder')} /> {/* Define new key */}
-                        </Form.Item>
-                        <Form.Item>
-                            <Button type="primary" htmlType="submit" loading={profileSaving} icon={<SaveOutlined />}>
-                                {t('settingsPage.saveProfileButton')} {/* Define new key */}
-                            </Button>
-                        </Form.Item>
-                    </Form>
-                ) : (
-                    // Use t() for Spin tip
-                    <Spin tip={t('settingsPage.loadingProfile')} /> // Define new key
-                )}
-            </TabPane>
-        </Tabs>
+                                    ]}
+                                    tooltip={t('settingsPage.profileNewPasswordTooltip')}
+                                >
+                                    <Input.Password placeholder={t('settingsPage.profileNewPasswordPlaceholder')} />
+                                </Form.Item>
+                                <Form.Item>
+                                    <Button type="primary" htmlType="submit" loading={profileSaving} icon={<SaveOutlined />}>
+                                        {t('settingsPage.saveProfileButton')}
+                                    </Button>
+                                </Form.Item>
+                            </Form>
+                        ) : (
+                            <Spin tip={t('settingsPage.loadingProfile')} />
+                        )
+                    )
+                }
+            ]}
+        />
     </Card>
   );
 };
