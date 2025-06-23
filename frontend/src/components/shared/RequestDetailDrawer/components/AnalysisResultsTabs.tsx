@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import { Tabs, Empty, Card, Button, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { FileTextOutlined, DiffOutlined, CodeOutlined, CopyOutlined } from '@ant-design/icons';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeMermaid from 'rehype-mermaid';
+import { useTheme } from '../../../../contexts/ThemeContext';
 import RequestStatus from './RequestStatus';
 import type { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem } from '../../../../types/index';
 
@@ -35,6 +38,7 @@ const AnalysisResultsTabs: React.FC<AnalysisResultsTabsProps> = ({
   isDiffLoading,
 }) => {
   const { t } = useTranslation();
+  const { effectiveTheme } = useTheme();
   const [activeAnalysisTabKey, setActiveAnalysisTabKey] = useState('problem');
 
   const handleCopyToClipboard = async (text: string, type: string) => {
@@ -54,13 +58,13 @@ const AnalysisResultsTabs: React.FC<AnalysisResultsTabsProps> = ({
         code({ node, inline, className, children, ...props }) {
           const match = /language-(\w+)/.exec(className || '');
           return !inline && match ? (
-            <pre style={{ background: '#f6f8fa', padding: '16px', borderRadius: '6px', overflow: 'auto' }}>
+            <pre style={{ background: 'var(--card-bg-color)', padding: '16px', borderRadius: '6px', overflow: 'auto' }}>
               <code className={className} {...props}>
                 {children}
               </code>
             </pre>
           ) : (
-            <code className={className} {...props} style={{ background: '#f6f8fa', padding: '2px 4px', borderRadius: '3px' }}>
+            <code className={className} {...props} style={{ background: 'var(--card-bg-color)', padding: '2px 4px', borderRadius: '3px' }}>
               {children}
             </code>
           );
@@ -135,21 +139,18 @@ const AnalysisResultsTabs: React.FC<AnalysisResultsTabsProps> = ({
           }
         >
           {parsedContent?.modified_code ? (
-            <pre
-              style={{
-                background: '#f6f8fa',
-                padding: '16px',
-                borderRadius: '6px',
-                overflow: 'auto',
+            <SyntaxHighlighter
+              language="typescript"
+              style={effectiveTheme === 'dark' ? vscDarkPlus : vs}
+              customStyle={{
                 margin: 0,
                 maxHeight: '500px',
-                fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
-                fontSize: '13px',
-                lineHeight: '1.45',
+                borderRadius: '6px',
+                background: 'var(--card-bg-color)',
               }}
             >
-              <code>{parsedContent.modified_code}</code>
-            </pre>
+              {parsedContent.modified_code}
+            </SyntaxHighlighter>
           ) : (
             <Empty 
               description={t('requestDetails.noModifiedCode')} 

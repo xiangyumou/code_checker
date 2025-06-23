@@ -292,7 +292,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
         content ? (
             <div style={{ marginBottom: '16px' }}>
                 <Title level={5} style={{ marginBottom: '8px' }}>{t(titleKey)}</Title> {/* Use t() for title */}
-                <pre style={{ whiteSpace: 'pre-wrap', background: '#f9f9f9', border: '1px solid #eee', padding: '10px', borderRadius: '4px', marginTop: '4px', maxHeight: '250px', overflowY: 'auto' }}>
+                <pre style={{ whiteSpace: 'pre-wrap', background: 'var(--button-bg-color)', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px', marginTop: '4px', maxHeight: '250px', overflowY: 'auto' }}>
                     <code>{content}</code>
                 </pre>
             </div>
@@ -358,7 +358,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
     }
 
     // Apply styles directly, avoid relying solely on external CSS if possible
-    return <div className="diff-container" style={{ background: '#fff', border: '1px solid #eee', borderRadius: '6px', overflowX: 'auto', padding: '5px' }} dangerouslySetInnerHTML={{ __html: diffHtml }} />;
+    return <div className="diff-container" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', overflowX: 'auto', padding: '5px' }} dangerouslySetInnerHTML={{ __html: diffHtml }} />;
   };
 
   // Modification Analysis Tab
@@ -393,7 +393,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
         title={t('requestDetails.modificationPoint', { index: index + 1 })} // Define new key
         size="small"
         style={{ marginBottom: 16 }}
-        headStyle={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }} // Lighter head background
+        headStyle={{ background: 'var(--button-bg-color)', borderBottom: '1px solid var(--border-color)' }} // Lighter head background
         bodyStyle={{ paddingTop: 8 }} // Reduce top padding in body
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -401,7 +401,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
             {item.original_snippet && (
                 <div>
                     <Text strong>{t('requestDetails.originalSnippet')}:</Text> {/* Define new key */}
-                    <pre style={{ marginTop: '4px', background: '#fff0f0', border: '1px solid #ffccc7', padding: '8px', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                    <pre style={{ marginTop: '4px', background: 'var(--code-bg-error)', border: '1px solid var(--border-color-error)', padding: '8px', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto' }}>
                         <code id={`original-snippet-${requestData?.id}-${index}`} className={`language-${codeLanguage}`}>
                             {item.original_snippet}
                         </code>
@@ -412,7 +412,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
             {item.modified_snippet && (
                 <div>
                     <Text strong>{t('requestDetails.modifiedSnippet')}:</Text> {/* Define new key */}
-                    <pre style={{ marginTop: '4px', background: '#f6ffed', border: '1px solid #b7eb8f', padding: '8px', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto' }}>
+                    <pre style={{ marginTop: '4px', background: 'var(--code-bg-success)', border: '1px solid var(--border-color-success)', padding: '8px', borderRadius: '4px', maxHeight: '200px', overflowY: 'auto' }}>
                         <code id={`modified-snippet-${requestData?.id}-${index}`} className={`language-${codeLanguage}`}>
                             {item.modified_snippet}
                         </code>
@@ -423,7 +423,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
             {item.explanation && (
                 <div>
                     <Text strong>{t('requestDetails.explanation')}:</Text> {/* Define new key */}
-                    <div style={{ marginTop: '4px', paddingLeft: '8px', borderLeft: `3px solid #eee` }}>
+                    <div style={{ marginTop: '4px', paddingLeft: '8px', borderLeft: `3px solid var(--border-color)` }}>
                         <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex, rehypeMermaid]}>
                             {item.explanation}
                         </ReactMarkdown>
@@ -483,7 +483,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
                     style={{ position: 'absolute', top: '8px', right: '8px', zIndex: 1 }}
                 />
             </Tooltip>
-            <pre style={{ whiteSpace: 'pre-wrap', background: '#f9f9f9', border: '1px solid #eee', padding: '10px', paddingTop: '30px', borderRadius: '4px', maxHeight: '60vh', overflowY: 'auto' }}>
+            <pre style={{ whiteSpace: 'pre-wrap', background: 'var(--button-bg-color)', border: '1px solid var(--border-color)', padding: '10px', paddingTop: '30px', borderRadius: '4px', maxHeight: '60vh', overflowY: 'auto' }}>
                 <code id={`source-code-block-${reqId}`} className={`language-${codeLanguage}`}>
                     {originalCode}
                 </code>
@@ -529,7 +529,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
     >
       {/* Show loading overlay if isLoading is true */}
       {isLoading && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(255, 255, 255, 0.7)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(128, 128, 128, 0.5)', zIndex: 10, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Spin size="large" tip={t('requestDetails.loadingDetails')} /> {/* Define new key */}
         </div>
       )}
@@ -550,7 +550,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
                   <Descriptions bordered column={1} size="small" layout="vertical">
                     <Descriptions.Item label={t('requestDetails.userPrompt')}> {/* Define new key */}
                       {requestData.user_prompt ? (
-                        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#f9f9f9', border: '1px solid #eee', padding: '10px', borderRadius: '4px', maxHeight: '40vh', overflowY: 'auto' }}>
+                        <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: 'var(--button-bg-color)', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px', maxHeight: '40vh', overflowY: 'auto' }}>
                           <code>{requestData.user_prompt}</code>
                         </pre>
                       ) : (
@@ -571,7 +571,7 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
                                 // Consider adding error handling or type detection if needed.
                                 src={`data:image/png;base64,${base64String}`}
                                 alt={t('requestDetails.submittedImageAlt', { index: index + 1 })}
-                                style={{ border: '1px solid #eee', objectFit: 'contain', background: '#f9f9f9', borderRadius: '4px', display: 'inline-block' }} // Added display inline-block for Space layout
+                                style={{ border: '1px solid var(--border-color)', objectFit: 'contain', background: 'var(--button-bg-color)', borderRadius: '4px', display: 'inline-block' }} // Added display inline-block for Space layout
                               />
                             ))}
                           </Space>
@@ -598,12 +598,12 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
                                   width={180}
                                   src={imageUrl}
                                   alt={t('requestDetails.submittedImageAlt', { index: index + 1 })}
-                                  style={{ border: '1px solid #eee', objectFit: 'contain', background: '#f9f9f9', borderRadius: '4px' }}
+                                  style={{ border: '1px solid var(--border-color)', objectFit: 'contain', background: 'var(--button-bg-color)', borderRadius: '4px' }}
                                   preview={{
                                     mask: <div style={{ background: 'rgba(0, 0, 0, 0.5)', color: 'white', textAlign: 'center', lineHeight: '180px' }}>{t('requestDetails.previewImage')}</div>,
                                   }}
                                   placeholder={
-                                    <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', border: '1px solid #eee', borderRadius: '4px' }}>
+                                    <div style={{ width: 180, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--sidebar-bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
                                       <Spin size="small" />
                                     </div>
                                   }

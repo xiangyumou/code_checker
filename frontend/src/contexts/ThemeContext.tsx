@@ -73,6 +73,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       return calculatedTheme;
     }, [themeMode, isOsDark]);
 
+// Apply theme class to root element
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (effectiveTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [effectiveTheme]);
   // Memoize setThemeMode to prevent unnecessary re-renders of consumers
   const setThemeMode = useCallback((mode: ThemeMode) => {
     // console.log(`[ThemeProvider] setThemeMode called with: ${mode}`); // Removed log

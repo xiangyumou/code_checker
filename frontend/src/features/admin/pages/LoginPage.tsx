@@ -38,7 +38,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: '#f0f2f5' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'var(--bg-color)' }}>
       <Card style={{ width: 350 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={2}>{t('loginPage.title')}</Title>

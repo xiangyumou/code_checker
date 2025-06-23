@@ -25,7 +25,7 @@ const OriginalSubmissionTab: React.FC<OriginalSubmissionTabProps> = ({ requestDa
             wordBreak: 'break-word', 
             fontFamily: 'monospace', 
             padding: '8px', 
-            backgroundColor: '#f5f5f5', 
+            backgroundColor: 'var(--card-bg-color)',
             borderRadius: '4px' 
           }}>
             {requestData.user_prompt}
@@ -53,9 +53,9 @@ const OriginalSubmissionTab: React.FC<OriginalSubmissionTabProps> = ({ requestDa
                     src={imageSrc}
                     alt={t('requestDetails.submittedImageAlt', { index: index + 1 })}
                     style={{ 
-                      border: '1px solid #eee', 
-                      objectFit: 'contain', 
-                      background: '#f9f9f9', 
+                      border: '1px solid var(--border-color)',
+                      objectFit: 'contain',
+                      background: 'var(--button-bg-color)',
                       borderRadius: '4px' 
                     }}
                     preview={{
@@ -77,8 +77,8 @@ const OriginalSubmissionTab: React.FC<OriginalSubmissionTabProps> = ({ requestDa
                         display: 'flex', 
                         alignItems: 'center', 
                         justifyContent: 'center', 
-                        background: '#f0f0f0', 
-                        border: '1px solid #eee', 
+                        background: 'var(--sidebar-bg-color)',
+                        border: '1px solid var(--border-color)',
                         borderRadius: '4px' 
                       }}>
                         <Spin size="small" />

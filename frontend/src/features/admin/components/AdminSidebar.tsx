@@ -28,22 +28,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
   const { t } = useTranslation();
 
   return (
-    <Sider breakpoint="lg" collapsedWidth="0" theme="dark">
-      <div style={{ 
-        height: '32px', 
-        margin: '16px', 
-        background: 'rgba(255, 255, 255, 0.2)', 
-        borderRadius: '6px', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center' 
+    <Sider breakpoint="lg" collapsedWidth="0" style={{ background: 'var(--sidebar-bg-color)' }}>
+      <div style={{
+        height: '32px',
+        margin: '16px',
+        background: 'var(--button-bg-color)',
+        borderRadius: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
       }}>
-        <Title level={5} style={{ color: 'white', margin: 0 }}>
+        <Title level={5} style={{ color: 'var(--text-color)', margin: 0 }}>
           {t('adminPanel.title')}
         </Title>
       </div>
       <Menu
-        theme="dark"
         mode="inline"
         selectedKeys={[selectedKey]}
         defaultOpenKeys={openKeys}

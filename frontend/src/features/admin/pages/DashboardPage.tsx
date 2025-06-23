@@ -59,7 +59,7 @@ const DashboardPage: React.FC = () => {
             <Statistic
               title={t('dashboard.completed')}
               value={stats.completed}
-              valueStyle={{ color: '#52c41a' }} // Green for completed
+              valueStyle={{ color: 'var(--ant-color-success)' }} // Green for completed
               prefix={<CheckCircleOutlined />}
             />
           </Card>
@@ -69,7 +69,7 @@ const DashboardPage: React.FC = () => {
             <Statistic
               title={t('dashboard.processing')}
               value={stats.processing}
-              valueStyle={{ color: '#1677ff' }} // Use theme primary color
+              valueStyle={{ color: 'var(--ant-color-processing)' }} // Use theme primary color
               prefix={<SyncOutlined spin />}
             />
           </Card>
@@ -79,7 +79,7 @@ const DashboardPage: React.FC = () => {
             <Statistic
               title={t('dashboard.failed')}
               value={stats.failed}
-              valueStyle={{ color: '#ff4d4f' }} // Use theme error color
+              valueStyle={{ color: 'var(--ant-color-error)' }} // Use theme error color
               prefix={<CloseCircleOutlined />}
             />
           </Card>

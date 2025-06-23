@@ -29,7 +29,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ wsStatus }) => {
       justifyContent: 'space-between', 
       flexShrink: 0 
     }}>
-      <Title level={3} style={{ margin: 0, flexGrow: 1, textAlign: 'center', color: '#fff' }}>
+      <Title level={3} style={{ margin: 0, flexGrow: 1, textAlign: 'center', color: 'var(--text-color)' }}>
         {t('app.title')}
       </Title>
       <Space>
