@@ -11,6 +11,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 
 import './i18n';
 import './index.css';
+import './styles/globals.css';
 import 'antd/dist/reset.css';
 import 'katex/dist/katex.min.css';
 

@@ -51,7 +51,7 @@ axiosInstance.interceptors.response.use(
       if (data && data.detail) {
           // Handle validation errors specifically (status 422)
           if (status === 422 && Array.isArray(data.detail)) {
-               errorMessage = `Validation Error: ${data.detail.map((err) => `${err.loc.join('.')} - ${err.msg}`).join(', ')}`;}
+               errorMessage = `Validation Error: ${data.detail.map((err) => `${err.loc.join('.')} - ${err.msg}`).join(', ')}`;
           } else if (typeof data.detail === 'string') {
               errorMessage = data.detail;
           } else {
@@ -73,7 +73,6 @@ axiosInstance.interceptors.response.use(
       } else if (status >= 500) {
           errorMessage = `Server Error (${status}): Please try again later or contact support.`;
       }
-
     } else if (error.request) {
       // The request was made but no response was received
       errorMessage = 'Network Error: Could not connect to the server. Please check your connection.';

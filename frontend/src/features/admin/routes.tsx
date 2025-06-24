@@ -1,15 +1,15 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import DashboardPage from './pages/DashboardPage';
-import RequestManagementPageWrapper from './pages/RequestManagementPageWrapper';
-import LogViewerPage from './pages/LogViewerPage';
-import SettingsPage from './pages/SettingsPage';
+import { ModernDashboardPage } from './pages/ModernDashboardPage';
+import { ModernRequestManagementPage } from './pages/ModernRequestManagementPage';
+import { ModernLogViewerPage } from './pages/ModernLogViewerPage';
+import { ModernSettingsPage } from './pages/ModernSettingsPage';
 
 export const adminRoutes = [
   { index: true, element: <Navigate to="dashboard" replace /> },
-  { path: 'dashboard', element: <DashboardPage /> },
-  { path: 'requests', element: <RequestManagementPageWrapper /> },
-  { path: 'logs', element: <LogViewerPage /> },
-  { path: 'settings', element: <SettingsPage /> },
+  { path: 'dashboard', element: <ModernDashboardPage /> },
+  { path: 'requests', element: <ModernRequestManagementPage /> },
+  { path: 'logs', element: <ModernLogViewerPage /> },
+  { path: 'settings', element: <ModernSettingsPage /> },
   { path: '*', element: <Navigate to="dashboard" replace /> },
 ];

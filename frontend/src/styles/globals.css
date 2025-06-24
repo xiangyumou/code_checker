@@ -1,0 +1,45 @@
+@import './design-system.css';
+@import './modern-ui.css';
+
+/* Base styles */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: white;
+  color: #171717;
+}
+
+[data-theme="dark"] body {
+  background-color: #0a0a0a;
+  color: #fafafa;
+}
+
+/* Custom utilities */
+.text-balance {
+  text-wrap: balance;
+}
+
+.animate-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+[data-theme="dark"] .glass {
+  background: rgba(23, 23, 23, 0.7);
+}
+
+.border-soft {
+  border-color: #e5e5e5;
+}
+
+[data-theme="dark"] .border-soft {
+  border-color: #262626;
+}

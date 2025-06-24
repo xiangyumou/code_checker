@@ -1,9 +1,9 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Spin, Layout, App as AntdApp } from 'antd';
-import UserAppPage from './features/user/UserAppPage';
-import AdminLayout from './features/admin/layouts/AdminLayout';
-import LoginPage from './features/admin/pages/LoginPage';
+import { UserApp } from './features/user/UserApp';
+import ModernAdminLayout from './features/admin/layouts/ModernAdminLayout';
+import { ModernLoginPage } from './features/admin/pages/ModernLoginPage';
 import { SecureAuthProvider, useSecureAuth } from './features/admin/contexts/SecureAuthContext';
 import { adminRoutes } from './features/admin/routes';
 
@@ -21,7 +21,7 @@ const LoginPageWrapper = () => {
     return result;
   };
 
-  return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  return <ModernLoginPage onLoginSuccess={handleLoginSuccess} />;
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -45,7 +45,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <UserAppPage />,
+    element: <UserApp />,
   },
   {
     path: '/login',
@@ -60,7 +60,7 @@ const router = createBrowserRouter([
     element: (
       <SecureAuthProvider>
         <ProtectedRoute>
-          <AdminLayout />
+          <ModernAdminLayout />
         </ProtectedRoute>
       </SecureAuthProvider>
     ),

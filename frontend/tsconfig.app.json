@@ -27,5 +27,6 @@
           "@shared/*": ["../../shared/src/*"]
         }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "types": ["vite/client"]
 }
