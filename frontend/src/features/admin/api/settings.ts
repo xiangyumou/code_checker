@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/communication';
+import { adminApiClient as apiClient } from '@/api/centralized';
 import { message } from 'antd';
 import i18n from 'i18next';
 import type { AppSettings } from '../../../types/index';

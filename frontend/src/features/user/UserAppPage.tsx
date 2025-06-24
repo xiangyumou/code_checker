@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { Layout, Spin } from 'antd';
-import { apiClient } from './lib/communication';
+import { userApiClient as apiClient } from '@/api/centralized';
 
 // Import custom hooks
 import { useAppInitialization } from './hooks/useAppInitialization';

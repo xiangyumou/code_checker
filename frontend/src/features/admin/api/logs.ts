@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/communication';
+import { adminApiClient as apiClient } from '@/api/centralized';
 import { message } from 'antd';
 import { PaginatedLogs, LogQueryParams } from '../../../types';
 

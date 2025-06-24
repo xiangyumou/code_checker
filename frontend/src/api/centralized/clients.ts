@@ -4,6 +4,8 @@
  */
 
 import { CentralizedApiClient } from './core';
+import { createWebSocketManager, createWebSocketHook } from '@shared/websocket/manager';
+import { createCommunicationConfig } from '@shared/config/index';
 
 // User API client (no authentication)
 export const userApiClient = new CentralizedApiClient({
@@ -25,6 +27,11 @@ export const adminApiClient = new CentralizedApiClient({
     }
   },
 });
+
+// WebSocket manager and hook
+const communicationConfig = createCommunicationConfig('frontend');
+const webSocketManager = createWebSocketManager(communicationConfig);
+export const useWebSocket = createWebSocketHook(webSocketManager);
 
 // Utility functions to maintain backward compatibility
 export const updateAuthToken = (token: string) => {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useWebSocket } from '../lib/communication';
+import { useWebSocket } from '@/api/centralized';
 import type { RequestSummary } from '../../../types/index';
 
 type WebSocketConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';

@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { Layout, theme } from 'antd';
 import { Outlet } from 'react-router-dom';
-import { apiClient } from '../lib/communication';
+import { adminApiClient as apiClient } from '@/api/centralized';
 
 // Import custom hooks
 import { useAdminRequests } from '../hooks/useAdminRequests';

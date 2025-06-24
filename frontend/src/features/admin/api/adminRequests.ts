@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/communication';
+import { adminApiClient as apiClient } from '@/api/centralized';
 import { message } from 'antd';
 import type { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/index';
 import i18n from '../../../i18n';

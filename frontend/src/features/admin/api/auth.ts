@@ -53,7 +53,7 @@ export const adminLogin = async (payload: LoginPayload): Promise<LoginResponse> 
     throw new Error(detail);
   }
 };
-import { apiClient } from '../lib/communication';
+import { adminApiClient as apiClient } from '@/api/centralized';
 import type { AdminUser } from '../../../types/index';
 
 // Define the structure for the profile update payload

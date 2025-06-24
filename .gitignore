@@ -131,3 +131,6 @@ MANIFEST
 *.bak
 *.backup
 logs_backup.md
+
+/frontend/node_modules
+/node_modules

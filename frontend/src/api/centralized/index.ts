@@ -4,7 +4,7 @@
  */
 
 // Export clients
-export { userApiClient, adminApiClient, updateAuthToken } from './clients';
+export { userApiClient, adminApiClient, updateAuthToken, useWebSocket } from './clients';
 
 // Export services
 export { RequestService } from './services/requestService';

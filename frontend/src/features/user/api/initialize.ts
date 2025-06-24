@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/communication';
+import { userApiClient as apiClient } from '@/api/centralized';
 
 // Type for the initialization status response
 interface InitializationStatus {

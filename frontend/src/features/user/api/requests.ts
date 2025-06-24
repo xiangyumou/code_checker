@@ -1,4 +1,4 @@
-import { apiClient } from '../lib/communication';
+import { userApiClient as apiClient } from '@/api/centralized';
 // Import specific types from the shared library
 import type { RequestStatus, AnalysisRequest, SubmissionFormData, RequestSummary } from '../../../types/index';
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { App } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { useWebSocket } from '../lib/communication';
+import { useWebSocket } from '@/api/centralized';
 import type { RequestSummary, AnalysisRequest } from '../../../types/index';
 
 interface UseAdminWebSocketProps {
