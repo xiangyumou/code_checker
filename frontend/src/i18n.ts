@@ -25,6 +25,7 @@ i18n
   .use(initReactI18next) // 将 i18n 实例传递给 react-i18next
   .init({
     resources, // 提供显式导入的资源
+    keySeparator: false, // 禁用键分隔符，因为我们使用扁平的 JSON 结构
     debug: false,
     fallbackLng: 'en-US', // 如果检测不到语言或资源不存在，使用的默认语言
     supportedLngs: ['en', 'en-US', 'zh', 'zh-CN', 'de', 'de-DE'],

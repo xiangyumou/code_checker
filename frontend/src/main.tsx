@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfigProvider, theme } from 'antd';
 import type { Locale } from 'antd/es/locale';
@@ -72,8 +72,10 @@ const root = createRoot(container!);
 
 root.render(
   <React.StrictMode>
-    <ThemeProvider>
-      <AppWrapper />
-    </ThemeProvider>
+    <Suspense fallback={<div>Loading...</div>}>
+      <ThemeProvider>
+        <AppWrapper />
+      </ThemeProvider>
+    </Suspense>
   </React.StrictMode>
 );
