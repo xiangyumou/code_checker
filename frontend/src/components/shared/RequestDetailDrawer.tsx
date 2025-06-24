@@ -16,6 +16,7 @@ import hljs from 'highlight.js';
 // Changed theme to github (light) - ensure this CSS is correctly loaded/bundled
 import 'highlight.js/styles/github.css';
 import ReactMarkdown from 'react-markdown';
+import DOMPurify from 'dompurify';
 import remarkGfm from 'remark-gfm'; // Add GFM plugin for tables, etc.
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -358,7 +359,12 @@ const RequestDetailDrawer: React.FC<RequestDetailDrawerProps> = ({
     }
 
     // Apply styles directly, avoid relying solely on external CSS if possible
-    return <div className="diff-container" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', overflowX: 'auto', padding: '5px' }} dangerouslySetInnerHTML={{ __html: diffHtml }} />;
+    // Sanitize HTML to prevent XSS attacks
+    const sanitizedDiffHtml = DOMPurify.sanitize(diffHtml, {
+      ALLOWED_TAGS: ['div', 'span', 'table', 'tbody', 'tr', 'td', 'th', 'thead', 'pre', 'code', 'ins', 'del', 'strong', 'em', 'b', 'i'],
+      ALLOWED_ATTR: ['class', 'style', 'data-line-number']
+    });
+    return <div className="diff-container" style={{ background: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '6px', overflowX: 'auto', padding: '5px' }} dangerouslySetInnerHTML={{ __html: sanitizedDiffHtml }} />;
   };
 
   // Modification Analysis Tab

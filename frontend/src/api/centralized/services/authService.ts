@@ -13,7 +13,6 @@ interface LoginRequest {
 interface LoginResponse {
   access_token: string;
   token_type: string;
-  user: AdminUser;
 }
 
 export class AuthService {
@@ -26,8 +25,9 @@ export class AuthService {
     return adminApiClient.upload<LoginResponse>('/login/access-token', formData);
   }
 
-  static async getProfile(): Promise<AdminUser> {
-    return adminApiClient.get<AdminUser>('/admin/profile/me');
+  static async getCurrentUser(): Promise<AdminUser> {
+    // Use test-token endpoint to get current user info
+    return adminApiClient.post<AdminUser>('/login/test-token', {});
   }
 
   static async updateProfile(data: { username?: string; password?: string }): Promise<AdminUser> {

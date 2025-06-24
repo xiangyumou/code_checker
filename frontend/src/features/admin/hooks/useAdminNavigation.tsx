@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
+import { useSecureAuth } from '../contexts/SecureAuthContext';
 import { 
   DashboardOutlined, 
   DatabaseOutlined, 
@@ -14,7 +14,7 @@ import {
 
 export const useAdminNavigation = () => {
   const { t } = useTranslation();
-  const { logout, user } = useAuth();
+  const { logout, user } = useSecureAuth();
   const navigate = useNavigate();
   const location = useLocation();
 

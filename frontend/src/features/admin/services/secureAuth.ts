@@ -29,20 +29,23 @@ class SecureAuthService {
    */
   async login(username: string, password: string): Promise<AuthResponse> {
     try {
+      const formData = new URLSearchParams();
+      formData.append('username', username);
+      formData.append('password', password);
+
       const response = await fetch(`${this.baseUrl}/login`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-        credentials: 'include', // Include cookies in requests
-        body: JSON.stringify({ username, password }),
+        body: formData,
       });
 
       const data = await response.json();
 
-      if (response.ok) {
-        // Token is automatically set as httpOnly cookie by backend
-        return { success: true, user: data.user };
+      if (response.ok && data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+        return { success: true };
       } else {
         return { success: false, error: data.detail || 'Login failed' };
       }
@@ -55,13 +58,14 @@ class SecureAuthService {
    * Logout and clear httpOnly cookie
    */
   async logout(): Promise<void> {
+    localStorage.removeItem('access_token');
     try {
-      await fetch(`${this.baseUrl}/logout`, {
+      // The backend doesn't have a formal logout endpoint, but clearing the token locally is sufficient.
+      await this.authenticatedFetch(`${this.baseUrl}/logout`, {
         method: 'POST',
-        credentials: 'include',
       });
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout error (can be ignored if endpoint does not exist):', error);
     }
   }
 
@@ -70,9 +74,8 @@ class SecureAuthService {
    */
   async checkAuth(): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/me`, {
+      const response = await this.authenticatedFetch(`${this.baseUrl}/me`, {
         method: 'GET',
-        credentials: 'include',
       });
 
       if (response.ok) {
@@ -90,13 +93,19 @@ class SecureAuthService {
    * Make authenticated API requests
    */
   async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const token = localStorage.getItem('access_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers as Record<string, string>,
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     return fetch(url, {
       ...options,
-      credentials: 'include', // Always include cookies
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
     });
   }
 
@@ -105,13 +114,17 @@ class SecureAuthService {
    */
   async refreshToken(): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/refresh`, {
+      // This assumes the refresh endpoint uses the Authorization header
+      const response = await this.authenticatedFetch(`${this.baseUrl}/refresh`, {
         method: 'POST',
-        credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
+        // Assuming refresh might return a new token and user data
+        if (data.access_token) {
+          localStorage.setItem('access_token', data.access_token);
+        }
         return { success: true, user: data.user };
       } else {
         return { success: false, error: 'Token refresh failed' };

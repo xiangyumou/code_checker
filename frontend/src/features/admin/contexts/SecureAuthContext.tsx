@@ -53,8 +53,9 @@ export const SecureAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setLoading(true);
     try {
       const result = await secureAuthService.login(username, password);
-      if (result.success && result.user) {
-        setUser(result.user);
+      if (result.success) {
+        // After successful login, fetch user data
+        await checkAuth();
         return { success: true };
       } else {
         return { success: false, error: result.error };
@@ -64,7 +65,7 @@ export const SecureAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [checkAuth]);
 
   // Check authentication status on mount
   useEffect(() => {
@@ -91,7 +92,7 @@ export const SecureAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }, 30 * 60 * 1000); // Refresh every 30 minutes
 
     return () => clearInterval(refreshInterval);
-  }, [user, logout]);
+  }, [user, logout, checkAuth]);
 
   const isAuthenticated = !!user;
 

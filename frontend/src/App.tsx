@@ -8,24 +8,27 @@ import DashboardPage from './features/admin/pages/DashboardPage';
 import RequestManagementPageWrapper from './features/admin/pages/RequestManagementPageWrapper';
 import LogViewerPage from './features/admin/pages/LogViewerPage';
 import SettingsPage from './features/admin/pages/SettingsPage';
-import { AuthProvider, useAuth } from './features/admin/contexts/AuthContext';
+import { SecureAuthProvider, useSecureAuth } from './features/admin/contexts/SecureAuthContext';
 
 const LoginPageWrapper = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login } = useSecureAuth();
 
-  const handleLoginSuccess = (token: string) => {
-    login(token);
-    const from = location.state?.from?.pathname || '/admin/dashboard';
-    navigate(from, { replace: true });
+  const handleLoginSuccess = async (username: string, password: string) => {
+    const result = await login(username, password);
+    if (result.success) {
+      const from = location.state?.from?.pathname || '/admin/dashboard';
+      navigate(from, { replace: true });
+    }
+    return result;
   };
 
   return <LoginPage onLoginSuccess={handleLoginSuccess} />;
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading } = useSecureAuth();
 
   if (loading) {
     return (
@@ -50,19 +53,19 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: (
-      <AuthProvider>
+      <SecureAuthProvider>
         <LoginPageWrapper />
-      </AuthProvider>
+      </SecureAuthProvider>
     ),
   },
   {
     path: '/admin',
     element: (
-      <AuthProvider>
+      <SecureAuthProvider>
         <ProtectedRoute>
           <AdminLayout />
         </ProtectedRoute>
-      </AuthProvider>
+      </SecureAuthProvider>
     ),
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },

@@ -3,6 +3,7 @@ import { Tabs, Empty, Card, Button, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
 import { FileTextOutlined, DiffOutlined, CodeOutlined, CopyOutlined } from '@ant-design/icons';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import DOMPurify from 'dompurify';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -107,7 +108,10 @@ const AnalysisResultsTabs: React.FC<AnalysisResultsTabsProps> = ({
             </div>
           ) : diffHtml ? (
             <div 
-              dangerouslySetInnerHTML={{ __html: diffHtml }} 
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(diffHtml, {
+                ALLOWED_TAGS: ['div', 'span', 'table', 'tbody', 'tr', 'td', 'th', 'thead', 'pre', 'code', 'ins', 'del', 'strong', 'em', 'b', 'i'],
+                ALLOWED_ATTR: ['class', 'style', 'data-line-number']
+              }) }} 
               style={{ maxHeight: '500px', overflow: 'auto' }}
             />
           ) : (

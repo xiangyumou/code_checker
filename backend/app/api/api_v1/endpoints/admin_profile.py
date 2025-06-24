@@ -10,7 +10,16 @@ from app.api import deps
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.put("/me", response_model=schemas.AdminUser)
+@router.get("", response_model=schemas.AdminUser)
+async def read_current_user(
+    current_user: models.AdminUser = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Get current authenticated admin user.
+    """
+    return current_user
+
+@router.put("", response_model=schemas.AdminUser)
 async def update_current_user(
     *,
     db: AsyncSession = Depends(deps.get_db),

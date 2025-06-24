@@ -14,7 +14,7 @@ from app.core.logging import get_db_logger
 router = APIRouter()
 db_logger = get_db_logger("api.login")
 
-@router.post("/login/access-token", response_model=schemas.Token)
+@router.post("", response_model=schemas.Token)
 async def login_access_token(
     request: Request,
     db: AsyncSession = Depends(deps.get_db),

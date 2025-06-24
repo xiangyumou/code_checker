@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { SaveOutlined, UserOutlined, AppstoreOutlined } from '@ant-design/icons'; // Added AppstoreOutlined
 import { useNavigate } from 'react-router-dom'; // Import for redirection
 import { getSettings, updateSettings } from '../api/settings';
-import { getMyProfile, updateMyProfile } from '../api/auth'; // Import profile API functions
+import { updateMyProfile } from '../api/auth'; // Import profile API function
+import { useSecureAuth } from '../contexts/SecureAuthContext'; // Use secure auth context
 import { AppSettings, AdminUser } from '../../../types/index'; // Import types
 
 const { Title, Text } = Typography;
@@ -41,33 +42,26 @@ const SettingsPage: React.FC = () => {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsSaving, setSettingsSaving] = useState(false);
 
-  // State for Admin Profile
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  // Get user from secure auth context
+  const { user: adminUser, checkAuth } = useSecureAuth();
   const [profileSaving, setProfileSaving] = useState(false);
 
   // Combined loading state
-  const loading = settingsLoading || profileLoading;
+  const loading = settingsLoading;
 
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       setSettingsLoading(true);
-      setProfileLoading(true);
       try {
-        // Fetch settings and profile concurrently
-        const [settingsData, profileData] = await Promise.all([
-          getSettings(),
-          getMyProfile()
-        ]);
-
+        // Fetch settings
+        const settingsData = await getSettings();
         setSettings(settingsData);
-        setAdminUser(profileData);
 
         // Set initial form values
         settingsForm.setFieldsValue(settingsData);
-        if (profileData) {
-          profileForm.setFieldsValue({ admin_username: profileData.username });
+        if (adminUser) {
+          profileForm.setFieldsValue({ admin_username: adminUser.username });
         }
 
       } catch (error) {
@@ -76,11 +70,10 @@ const SettingsPage: React.FC = () => {
         // If profile fetch fails (e.g., 401), App component might handle redirect
       } finally {
         setSettingsLoading(false);
-        setProfileLoading(false);
       }
     };
     fetchData();
-  }, [settingsForm, profileForm]); // Add profileForm dependency
+  }, [settingsForm, profileForm, adminUser]); // Add dependencies
 
   // Handler for saving App Settings
   const onSettingsFinish = async (values: AppSettings) => {
@@ -170,7 +163,9 @@ const SettingsPage: React.FC = () => {
 
     try {
       const updatedUserData = await updateMyProfile(profileUpdatePayload);
-      setAdminUser(updatedUserData); // Update local user state
+      
+      // Refresh auth context to get updated user info
+      await checkAuth();
 
       // Reset form fields: username to new value, password to empty
       profileForm.setFieldsValue({ admin_username: updatedUserData.username });
@@ -179,9 +174,8 @@ const SettingsPage: React.FC = () => {
       // Handle redirection if username changed
       if (usernameChanged) {
         message.success(t('settingsPage.profileUpdateSuccessUsernameChanged'), 5); // Define new key
-        // Clear token (assuming token is in localStorage, adjust if different)
-        localStorage.removeItem('admin_token');
-        // Redirect to login page after a short delay
+        // The secure auth context will handle token invalidation and redirect
+        // Just need to wait a bit for the message to show
         setTimeout(() => navigate('/login'), 1500); // Adjust path if needed
       } else {
         message.success(t('settingsPage.profileUpdateSuccess')); // Define new key

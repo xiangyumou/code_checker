@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, Alert } from 'antd';
 import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { adminLogin } from '../api/auth'; // Import the login API function
+// Login is now handled through SecureAuthContext
 
 const { Title } = Typography;
 
 interface LoginPageProps {
-  onLoginSuccess: (token: string) => void; // Callback with token on successful login
+  onLoginSuccess: (username: string, password: string) => Promise<{ success: boolean; error?: string }>; // Callback for login
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
@@ -20,15 +20,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await adminLogin({
-        username: values.username,
-        password: values.password,
-      });
-      // Call the success callback provided by App.tsx
-      onLoginSuccess(response.access_token);
+      // Call the secure login callback provided by App.tsx
+      const result = await onLoginSuccess(values.username, values.password);
+      if (!result.success) {
+        setError(result.error || t('loginPage.errorMessage'));
+      }
     } catch (err: unknown) {
-      // Error message is shown by the API function using antd message
-      // Set local error state if needed for Alert component
       // Use t() for default error message
       setError(err instanceof Error ? err.message : t('loginPage.errorMessage'));
       console.error("Login page error:", err);
