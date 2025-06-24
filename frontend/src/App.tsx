@@ -4,11 +4,8 @@ import { Spin, Layout, App as AntdApp } from 'antd';
 import UserAppPage from './features/user/UserAppPage';
 import AdminLayout from './features/admin/layouts/AdminLayout';
 import LoginPage from './features/admin/pages/LoginPage';
-import DashboardPage from './features/admin/pages/DashboardPage';
-import RequestManagementPageWrapper from './features/admin/pages/RequestManagementPageWrapper';
-import LogViewerPage from './features/admin/pages/LogViewerPage';
-import SettingsPage from './features/admin/pages/SettingsPage';
 import { SecureAuthProvider, useSecureAuth } from './features/admin/contexts/SecureAuthContext';
+import { adminRoutes } from './features/admin/routes';
 
 const LoginPageWrapper = () => {
   const navigate = useNavigate();
@@ -67,14 +64,7 @@ const router = createBrowserRouter([
         </ProtectedRoute>
       </SecureAuthProvider>
     ),
-    children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'requests', element: <RequestManagementPageWrapper /> },
-      { path: 'logs', element: <LogViewerPage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: '*', element: <Navigate to="dashboard" replace /> },
-    ],
+    children: adminRoutes,
   },
 ]);
 

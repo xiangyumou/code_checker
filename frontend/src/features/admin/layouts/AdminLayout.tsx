@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { Layout, theme } from 'antd';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { adminApiClient as apiClient } from '@/api/centralized';
 
 // Import custom hooks
@@ -20,6 +20,8 @@ const MainLayout: React.FC = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+  
+  const navigate = useNavigate();
 
   // Custom hooks for state management
   const {
@@ -84,7 +86,7 @@ const MainLayout: React.FC = () => {
         menuItems={menuItems}
         selectedKey={selectedKey}
         openKeys={openKey}
-        onMenuClick={(key) => window.location.pathname = key}
+        onMenuClick={(key) => navigate(key)}
       />
       
       <Layout>
