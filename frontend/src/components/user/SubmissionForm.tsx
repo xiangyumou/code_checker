@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Textarea } from '../ui/Input';
-import { 
-  SendOutlined, 
-  DeleteOutlined, 
+import {
+  SendOutlined,
+  DeleteOutlined,
   PictureOutlined,
   CloseOutlined,
 } from '@ant-design/icons';
@@ -14,7 +14,7 @@ import { cn } from '@/shared/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SubmissionFormProps {
-  onSubmit: (data: { text: string; images: string[] }) => Promise<void>;
+  onSubmit: (data: { text: string; images: File[] }) => Promise<void>;
   loading?: boolean;
 }
 
@@ -29,10 +29,8 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
+    if (e.type === 'dragenter' || e.type === 'dragleave' || e.type === 'dragover') {
+      setDragActive(e.type !== 'dragleave');
     }
   }, []);
 
@@ -40,7 +38,7 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
   }, []);
@@ -74,7 +72,7 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = Array.from(e.clipboardData.items);
     const imageItems = items.filter(item => item.type.startsWith('image/'));
-    
+
     if (imageItems.length > 0) {
       e.preventDefault();
       const files = imageItems.map(item => item.getAsFile()).filter(Boolean) as File[];
@@ -97,18 +95,10 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
       return;
     }
 
-    const imageDataUrls = await Promise.all(
-      images.map(img => 
-        new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(img.file);
-        })
-      )
-    );
+    const imageFiles = images.map(img => img.file).filter(Boolean);
 
-    await onSubmit({ text, images: imageDataUrls });
-    
+    await onSubmit({ text, images: imageFiles });
+
     setText('');
     setImages([]);
     images.forEach(img => URL.revokeObjectURL(img.preview));
@@ -139,10 +129,10 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
 
           <div
             className={cn(
-              "relative rounded-lg border-2 border-dashed transition-colors",
-              dragActive 
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" 
-                : "border-gray-300 dark:border-gray-700"
+              'relative rounded-lg border-2 border-dashed transition-colors',
+              dragActive
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
+                : 'border-gray-300 dark:border-gray-700'
             )}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -159,7 +149,7 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
               className="border-0 focus:ring-0 min-h-[200px] resize-none"
               disabled={loading}
             />
-            
+
             {images.length === 0 && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
                 <div className="text-center">
@@ -206,53 +196,53 @@ export const SubmissionForm: React.FC<SubmissionFormProps> = ({ onSubmit, loadin
           </AnimatePresence>
 
           <div className="flex items-center gap-3">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) {
+                  handleFiles(Array.from(e.target.files));
+                  e.target.value = '';
+                }
+              }}
+              disabled={loading}
+            />
             <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              icon={<PictureOutlined />}
+              disabled={loading}
+            >
+              {t('user.submit.addImages')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setText('');
+                images.forEach(img => URL.revokeObjectURL(img.preview));
+                setImages([]);
+              }}
+              icon={<DeleteOutlined />}
+              disabled={loading || (text.length === 0 && images.length === 0)}
+            >
+              {t('user.submit.clear')}
+            </Button>
+            <Button
+              type="button"
               variant="primary"
-              size="lg"
               onClick={handleSubmit}
               loading={loading}
-              disabled={loading || (!text.trim() && images.length === 0)}
               icon={<SendOutlined />}
-              className="flex-1 sm:flex-initial"
+              disabled={loading}
             >
               {t('user.submit.submit')}
             </Button>
-            
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading || images.length >= 5}
-              icon={<PictureOutlined />}
-            >
-              {t('user.submit.addImage')}
-            </Button>
-            
-            {(text || images.length > 0) && (
-              <Button
-                variant="ghost"
-                size="lg"
-                onClick={() => {
-                  setText('');
-                  setImages([]);
-                  images.forEach(img => URL.revokeObjectURL(img.preview));
-                }}
-                disabled={loading}
-                icon={<DeleteOutlined />}
-              >
-                {t('common.clear')}
-              </Button>
-            )}
           </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={(e) => handleFiles(Array.from(e.target.files || []))}
-            className="hidden"
-          />
         </div>
       </CardContent>
     </Card>
