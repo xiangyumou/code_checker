@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import os
 import uuid
@@ -85,13 +85,12 @@ class RequestService:
         user_prompt: Optional[str],
         images: Optional[List[UploadFile]]
         # analysis_queue and manager are now instance attributes
-    ) -> models.Request: # Return the DB model instance, endpoint handles refresh/schema conversion
+    ) -> Tuple[models.Request, Dict[str, Any]]: # Return DB model and payload for broadcasting
         """
         Handles the business logic for creating a new analysis request.
         - Saves uploaded images.
         - Creates the request record in the database.
-        - Adds the request ID to the analysis queue using self.queue.
-        - Broadcasts the creation event via WebSocket using self.manager.
+        - Prepares a payload that callers can broadcast after committing the transaction.
 
         Args:
             user_prompt: The user's text prompt.
@@ -100,7 +99,7 @@ class RequestService:
             # manager: (Removed) Now accessed via self.manager.
 
         Returns:
-            The created database Request object.
+            A tuple of the database Request object and the prepared broadcast payload.
 
         Raises:
             ValueError: If input data is invalid (e.g., no prompt and no images).
@@ -157,29 +156,15 @@ class RequestService:
             raise HTTPException(status_code=500, detail="Database error during request creation.") from e
 
 
-        # 3 & 4: Handle post-creation steps (queueing and broadcasting) using instance attributes
-        await self._handle_request_post_creation(db_request)
-
-        # 5. Return the created DB object (endpoint will commit and refresh)
-        return db_request
+        # 3 & 4: Prepare post-creation data (broadcast payload) using instance attributes
+        return await self._handle_request_post_creation(db_request)
 
     async def _handle_request_post_creation(
         self,
         db_request: models.Request
         # analysis_queue and manager are now instance attributes
-    ):
-        """Handles queueing (using self.queue) and broadcasting (using self.manager)
-           after request creation/regeneration."""
-        # Add request ID to the analysis queue using self.queue
-        try:
-            await self.queue.put(db_request.id)
-            logger.info(f"Request ID {db_request.id} added to analysis queue.")
-        except Exception as e:
-            logger.critical(f"CRITICAL: Failed to add request ID {db_request.id} to analysis queue: {e}", exc_info=True)
-            # Raise specific exception for endpoint to handle rollback
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to queue request for processing.") from e
-
-        # Broadcast the creation event via WebSocket using self.manager
+    ) -> Tuple[models.Request, Dict[str, Any]]:
+        """Prepare refreshed request object and broadcast payload after creation/regeneration."""
         try:
             await self.db.refresh(db_request) # Ensure object is up-to-date
 
@@ -195,7 +180,7 @@ class RequestService:
                     filename = db_request.image_references[0] # Fallback to full reference if parsing fails
 
             # Construct data compatible with RequestSummary
-            summary_data = {
+            summary_data: Dict[str, Any] = {
                 "id": db_request.id,
                 "status": db_request.status.value, # Send enum value
                 "created_at": db_request.created_at.isoformat(), # Send ISO string
@@ -212,24 +197,22 @@ class RequestService:
                 logger.error(f"Failed to validate RequestSummary data for broadcast (ID: {db_request.id}): {validation_err}. Sending raw data.", exc_info=True)
                 payload_to_send = summary_data # Fallback to sending raw dict
 
-            await self.manager.broadcast_request_created(payload_to_send)
-            logger.info(f"Broadcasted request creation (summary) for ID: {db_request.id}")
+            return db_request, payload_to_send
         except Exception as e:
-            logger.error(f"Failed to broadcast request creation (summary) for ID {db_request.id}: {e}", exc_info=True)
-            # Don't fail the request for broadcast errors
+            logger.error(f"Failed to prepare request post-creation data for ID {db_request.id}: {e}", exc_info=True)
+            raise
 
     async def regenerate_request(
         self,
         *,
         original_request_id: int
         # analysis_queue and manager are now instance attributes
-    ) -> models.Request: # Return DB model
+    ) -> Tuple[models.Request, Dict[str, Any]]: # Return DB model and payload for broadcasting
         """
         Handles the business logic for regenerating an analysis request based on a previous one.
         - Fetches the original request.
         - Creates a new request record copying relevant data (prompt, image references).
-        - Queues the new request for analysis using self.queue.
-        - Broadcasts the creation event using self.manager.
+        - Prepares data so callers can queue/broadcast only after the transaction commits.
 
         Args:
             original_request_id: The ID of the original request to regenerate from.
@@ -237,7 +220,7 @@ class RequestService:
             # manager: (Removed) Now accessed via self.manager.
 
         Returns:
-            The created database Request object.
+            A tuple of the database Request object and the prepared broadcast payload.
 
         Raises:
             HTTPException: If the original request is not found (404) or if there's a
@@ -260,12 +243,8 @@ class RequestService:
             logger.error(f"Database error creating regenerated request: {e}", exc_info=True)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error during request regeneration.") from e
 
-        # 4. Handle post-creation steps (queueing and broadcasting) using the helper
-        # This raises HTTPException on queueing failure, which endpoint should catch for rollback
-        await self._handle_request_post_creation(new_db_request)
-
-        # 5. Return the newly created DB object (endpoint will commit and refresh)
-        return new_db_request
+        # 4. Prepare post-creation data (broadcast payload) using the helper
+        return await self._handle_request_post_creation(new_db_request)
 
     async def get_request(self, *, request_id: int) -> Optional[schemas.Request]:
         """

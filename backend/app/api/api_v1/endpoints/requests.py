@@ -73,7 +73,7 @@ async def create_request(
         try:
             # Call the service layer, passing manually parsed data
             # Ensure service expects List[starlette.datastructures.UploadFile] or compatible
-            created_db_request = await request_service.create_request(
+            created_db_request, broadcast_payload = await request_service.create_request(
                 user_prompt=str(user_prompt_value) if user_prompt_value is not None else None, # Convert if needed, handle None
                 images=image_files, # Pass the list of Starlette UploadFile objects
             )
@@ -82,6 +82,31 @@ async def create_request(
             await db.commit()
             await db.refresh(created_db_request) # Refresh to get final state after commit
             logger.info(f"Request {created_db_request.id} created successfully via service (manual parse) and committed.")
+
+            # Queue the request for processing only after the commit succeeds
+            try:
+                await request_service.queue.put(created_db_request.id)
+                logger.info(f"Request ID {created_db_request.id} added to analysis queue post-commit.")
+            except Exception as queue_err:
+                logger.critical(
+                    f"Failed to queue request ID {created_db_request.id} after commit: {queue_err}",
+                    exc_info=True
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to queue request for processing after creation."
+                ) from queue_err
+
+            # Broadcast the creation event after the transaction is persisted
+            try:
+                await request_service.manager.broadcast_request_created(broadcast_payload)
+                logger.info(f"Broadcasted request creation for ID: {created_db_request.id}")
+            except Exception as broadcast_err:
+                logger.error(
+                    f"Failed to broadcast request creation for ID {created_db_request.id}: {broadcast_err}",
+                    exc_info=True
+                )
+
             # Convert to Pydantic model before returning
             return schemas.Request.model_validate(created_db_request)
 
@@ -189,7 +214,7 @@ async def regenerate_request_analysis(
 
     try:
         # Call the service layer to handle regeneration logic
-        new_db_request = await request_service.regenerate_request(
+        new_db_request, broadcast_payload = await request_service.regenerate_request(
             original_request_id=request_id
             # Removed manager=websocket_manager, service handles it internally
             # Removed analysis_queue parameter, will be added after commit
@@ -202,13 +227,27 @@ async def regenerate_request_analysis(
 
         # Put the new request ID into the analysis queue after successful commit
         try:
-            await request.app.state.analysis_queue.put(new_db_request.id)
+            await request_service.queue.put(new_db_request.id)
             logger.info(f"Successfully queued regenerated request ID {new_db_request.id} for analysis.")
         except Exception as queue_err:
-            # Log the queuing error but don't fail the request, as the request object is already created.
-            # This might require manual intervention or a separate monitoring mechanism.
-            logger.error(f"Failed to queue regenerated request ID {new_db_request.id} after creation: {queue_err}", exc_info=True)
-            # Optionally, update the request status to indicate a queuing issue if the model supports it.
+            logger.critical(
+                f"Failed to queue regenerated request ID {new_db_request.id} after commit: {queue_err}",
+                exc_info=True
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to queue regenerated request for processing."
+            ) from queue_err
+
+        # Broadcast the creation event after persistence
+        try:
+            await request_service.manager.broadcast_request_created(broadcast_payload)
+            logger.info(f"Broadcasted regenerated request creation for ID: {new_db_request.id}")
+        except Exception as broadcast_err:
+            logger.error(
+                f"Failed to broadcast regenerated request creation for ID {new_db_request.id}: {broadcast_err}",
+                exc_info=True
+            )
 
         # Convert the final DB object to Pydantic schema for the response
         return schemas.Request.model_validate(new_db_request)
