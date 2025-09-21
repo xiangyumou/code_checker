@@ -1,3 +1,5 @@
+import asyncio
+from datetime import datetime
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +9,8 @@ from unittest.mock import patch, AsyncMock # Import patch and AsyncMock
 
 from app import crud, schemas, models
 from app.models.request import RequestStatus
+from app.api.api_v1.endpoints import admin_requests
+from app.main import app as fastapi_app
 
 # Import the helper fixture from test_login
 from .test_login import admin_token_headers, TEST_USERNAME, TEST_PASSWORD, test_admin_user
@@ -166,3 +170,89 @@ async def test_batch_regenerate_requests_unauthenticated(test_client: AsyncClien
     batch_payload = {"action": "retry", "request_ids": [requests[0].id]}
     response = await test_client.post("/admin/requests/batch", json=batch_payload) # Correct URL
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+async def test_retry_request_analysis_broadcast_payload(
+    test_client: AsyncClient,
+    db_session: AsyncSession,
+    admin_token_headers: Dict[str, str],
+    monkeypatch,
+):
+    """Ensure retry endpoint broadcasts expected payload structure."""
+    await _ensure_queue()
+    request_obj = (await create_test_requests(db_session, 1))[0]
+    failed_request = await crud.crud_request.update_status(
+        db_session,
+        db_obj=request_obj,
+        status=RequestStatus.FAILED,
+        error_message="Boom",
+    )
+    await db_session.refresh(failed_request)
+
+    broadcast_mock = AsyncMock()
+    monkeypatch.setattr(admin_requests.manager, "broadcast_request_updated", broadcast_mock)
+
+    response = await test_client.post(
+        f"/admin/requests/{failed_request.id}/retry",
+        headers=admin_token_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    response_data = response.json()
+    assert response_data["status"] == RequestStatus.QUEUED
+
+    assert broadcast_mock.await_count == 1
+    args, kwargs = broadcast_mock.await_args
+    assert not kwargs, "Broadcast should be called with positional args"
+    request_id, status_value, updated_at, error_message = args
+    assert request_id == failed_request.id
+    assert status_value == RequestStatus.QUEUED
+    assert isinstance(updated_at, datetime)
+    assert error_message is None
+
+
+async def test_batch_retry_broadcast_payload(
+    test_client: AsyncClient,
+    db_session: AsyncSession,
+    admin_token_headers: Dict[str, str],
+    monkeypatch,
+):
+    """Ensure batch retry endpoint broadcasts expected payload structure per request."""
+    await _ensure_queue()
+    request_obj = (await create_test_requests(db_session, 1))[0]
+    failed_request = await crud.crud_request.update_status(
+        db_session,
+        db_obj=request_obj,
+        status=RequestStatus.FAILED,
+        error_message="Needs retry",
+    )
+    await db_session.refresh(failed_request)
+
+    broadcast_mock = AsyncMock()
+    monkeypatch.setattr(admin_requests.manager, "broadcast_request_updated", broadcast_mock)
+
+    batch_payload = {"action": "retry", "request_ids": [failed_request.id]}
+    response = await test_client.post(
+        "/admin/requests/batch",
+        json=batch_payload,
+        headers=admin_token_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["results"]["success"] == [failed_request.id]
+
+    assert broadcast_mock.await_count == 1
+    args, kwargs = broadcast_mock.await_args
+    assert not kwargs
+    request_id, status_value, updated_at, error_message = args
+    assert request_id == failed_request.id
+    assert status_value == RequestStatus.QUEUED
+    assert isinstance(updated_at, datetime)
+    assert error_message is None
+
+
+async def _ensure_queue():
+    """Ensure the FastAPI app has an analysis queue for tests that enqueue work."""
+    if not hasattr(fastapi_app.state, "analysis_queue"):
+        fastapi_app.state.analysis_queue = asyncio.Queue()

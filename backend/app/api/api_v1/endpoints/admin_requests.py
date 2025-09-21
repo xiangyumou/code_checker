@@ -1,5 +1,6 @@
 import logging
-from typing import Any, List, Optional
+from datetime import datetime
+from typing import Any, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body, FastAPI # Removed Request, Added FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,12 @@ from typing import Dict # Import Dict
 class BatchRequestAction(BaseModel):
     action: str # e.g., "delete", "retry"
     request_ids: List[int]
+
+
+def _get_broadcast_fields(request_obj: models.Request) -> Tuple[int, models.RequestStatus, datetime, Optional[str]]:
+    """Extract fields required for WebSocket broadcast from a request ORM object."""
+    updated_at = request_obj.updated_at or datetime.utcnow()
+    return request_obj.id, request_obj.status, updated_at, request_obj.error_message
 
 @router.get("/", response_model=List[schemas.RequestSummary]) # Use RequestSummary for list view
 async def read_admin_requests(
@@ -161,9 +168,8 @@ async def retry_request_analysis(
 
     # Broadcast the update event (status change) via WebSocket
     try:
-        # Ensure the data sent is JSON serializable
-        request_data = schemas.Request.model_validate(updated_request).model_dump(mode='json')
-        await manager.broadcast_request_updated(request_data)
+        broadcast_args = _get_broadcast_fields(updated_request)
+        await manager.broadcast_request_updated(*broadcast_args)
         logger.info(f"Broadcasted request update (retry queued) for ID: {updated_request.id}")
     except Exception as e:
         logger.error(f"Failed to broadcast request update (retry) for ID {updated_request.id}: {e}", exc_info=True)
@@ -262,8 +268,8 @@ async def batch_request_action(
                 processed_count += 1
                 # Broadcast update for this ID immediately after status change
                 try:
-                    request_data = schemas.Request.model_validate(updated_request).model_dump(mode='json')
-                    await manager.broadcast_request_updated(request_data)
+                    broadcast_args = _get_broadcast_fields(updated_request)
+                    await manager.broadcast_request_updated(*broadcast_args)
                     logger.debug(f"Broadcasted batch request update (retry queued) for ID: {updated_request.id}")
                 except Exception as broadcast_e:
                     logger.error(f"Failed to broadcast batch request update (retry) for ID {updated_request.id}: {broadcast_e}", exc_info=True)
