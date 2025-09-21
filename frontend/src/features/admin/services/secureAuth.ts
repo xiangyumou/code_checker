@@ -9,12 +9,18 @@ interface AuthResponse {
   error?: string;
 }
 
+interface RefreshResponse extends AuthResponse {
+  refreshSupported: boolean;
+}
+
 class SecureAuthService {
   private static instance: SecureAuthService;
   private baseUrl: string;
+  private refreshSupported: boolean | null;
 
   private constructor() {
     this.baseUrl = '/api/v1'; // Adjust based on your API base URL
+    this.refreshSupported = null;
   }
 
   public static getInstance(): SecureAuthService {
@@ -112,25 +118,59 @@ class SecureAuthService {
   /**
    * Refresh token if needed (handled automatically by httpOnly cookies)
    */
-  async refreshToken(): Promise<AuthResponse> {
+  async refreshToken(): Promise<RefreshResponse> {
+    if (this.refreshSupported === false) {
+      return { success: true, refreshSupported: false };
+    }
+
     try {
       // This assumes the refresh endpoint uses the Authorization header
       const response = await this.authenticatedFetch(`${this.baseUrl}/refresh`, {
         method: 'POST',
       });
 
+      if (response.status === 404 || response.status === 405) {
+        this.refreshSupported = false;
+        return { success: true, refreshSupported: false };
+      }
+
+      if (response.status === 204) {
+        this.refreshSupported = true;
+        return { success: true, refreshSupported: true };
+      }
+
       if (response.ok) {
-        const data = await response.json();
-        // Assuming refresh might return a new token and user data
+        this.refreshSupported = true;
+        const text = await response.text();
+        let data: any = {};
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (parseError) {
+            console.warn('Unexpected refresh response format:', parseError);
+            data = {};
+          }
+        }
+
         if (data.access_token) {
           localStorage.setItem('access_token', data.access_token);
         }
-        return { success: true, user: data.user };
-      } else {
-        return { success: false, error: 'Token refresh failed' };
+
+        return {
+          success: true,
+          user: data.user,
+          refreshSupported: true,
+        };
       }
+
+      this.refreshSupported = true;
+      return { success: false, error: 'Token refresh failed', refreshSupported: true };
     } catch (error) {
-      return { success: false, error: 'Network error' };
+      return {
+        success: false,
+        error: 'Network error',
+        refreshSupported: this.refreshSupported !== false,
+      };
     }
   }
 }

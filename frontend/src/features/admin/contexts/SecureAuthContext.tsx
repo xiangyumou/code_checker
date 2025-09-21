@@ -76,23 +76,50 @@ export const SecureAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     if (!user) return;
 
-    const refreshInterval = setInterval(async () => {
+    let refreshDisabled = false;
+    let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
+    const clearRefreshInterval = () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+      }
+    };
+
+    const handleRefresh = async () => {
+      if (refreshDisabled) {
+        return;
+      }
+
       try {
         const result = await secureAuthService.refreshToken();
+
+        if (!result.refreshSupported) {
+          refreshDisabled = true;
+          clearRefreshInterval();
+          return;
+        }
+
         if (result.success && result.user) {
           setUser(result.user);
-        } else {
-          // Refresh failed, user needs to login again
+        } else if (!result.success) {
           await logout();
         }
       } catch (error) {
-        console.error('Token refresh error:', error);
-        await logout();
+        if (!refreshDisabled) {
+          console.error('Token refresh error:', error);
+          await logout();
+        }
       }
-    }, 30 * 60 * 1000); // Refresh every 30 minutes
+    };
 
-    return () => clearInterval(refreshInterval);
-  }, [user, logout, checkAuth]);
+    refreshInterval = setInterval(handleRefresh, 30 * 60 * 1000); // Refresh every 30 minutes
+
+    return () => {
+      refreshDisabled = true;
+      clearRefreshInterval();
+    };
+  }, [user, logout]);
 
   const isAuthenticated = !!user;
 
