@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -10,6 +10,7 @@ class LogBase(BaseModel):
     level: LogLevel
     message: str
     source: Optional[str] = None
+    context: Optional[dict[str, Any]] = None
 
 
 class LogCreate(LogBase):
