@@ -3,6 +3,8 @@
  * This prevents XSS attacks from accessing authentication tokens
  */
 
+import { ADMIN_AUTH_TOKEN_KEY } from '@/constants/adminAuth';
+
 interface AuthResponse {
   success: boolean;
   user?: any;
@@ -44,7 +46,7 @@ class SecureAuthService {
       const data = await response.json();
 
       if (response.ok && data.access_token) {
-        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem(ADMIN_AUTH_TOKEN_KEY, data.access_token);
         return { success: true };
       } else {
         return { success: false, error: data.detail || 'Login failed' };
@@ -58,7 +60,7 @@ class SecureAuthService {
    * Logout and clear httpOnly cookie
    */
   async logout(): Promise<void> {
-    localStorage.removeItem('access_token');
+    localStorage.removeItem(ADMIN_AUTH_TOKEN_KEY);
     try {
       // The backend doesn't have a formal logout endpoint, but clearing the token locally is sufficient.
       await this.authenticatedFetch(`${this.baseUrl}/logout`, {
@@ -93,7 +95,7 @@ class SecureAuthService {
    * Make authenticated API requests
    */
   async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem(ADMIN_AUTH_TOKEN_KEY);
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
@@ -123,7 +125,7 @@ class SecureAuthService {
         const data = await response.json();
         // Assuming refresh might return a new token and user data
         if (data.access_token) {
-          localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem(ADMIN_AUTH_TOKEN_KEY, data.access_token);
         }
         return { success: true, user: data.user };
       } else {

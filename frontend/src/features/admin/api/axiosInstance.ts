@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios'; // Import AxiosError
 import { message } from 'antd';
+import { ADMIN_AUTH_TOKEN_KEY } from '@/constants/adminAuth';
 
 // Base URL for the API
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'; // Use env var, fallback to relative path
@@ -15,7 +16,7 @@ const axiosInstance = axios.create({
 // Request interceptor to add the auth token
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('admin_token'); // Retrieve token from localStorage
+    const token = localStorage.getItem(ADMIN_AUTH_TOKEN_KEY); // Retrieve token from localStorage
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
@@ -50,7 +51,7 @@ axiosInstance.interceptors.response.use(
       // Handle 401 Unauthorized specifically: redirect to login
       if (status === 401) {
         errorMessage = 'Authentication failed or expired. Please log in again.';
-        localStorage.removeItem('admin_token'); // Clear invalid token
+        localStorage.removeItem(ADMIN_AUTH_TOKEN_KEY); // Clear invalid token
         // Use window.location to redirect outside of React Router context if needed
         if (window.location.pathname !== '/login') { // Avoid redirect loop if already on login
              window.location.href = '/login';

@@ -6,6 +6,7 @@
 import { CentralizedApiClient } from './core';
 import { createWebSocketManager, createWebSocketHook } from '@shared/websocket/manager';
 import { createCommunicationConfig } from '@shared/config/index';
+import { ADMIN_AUTH_TOKEN_KEY } from '@/constants/adminAuth';
 
 // User API client (no authentication)
 export const userApiClient = new CentralizedApiClient({
@@ -19,7 +20,7 @@ export const adminApiClient = new CentralizedApiClient({
   baseURL: '/api/v1',
   timeout: 15000,
   withAuth: true,
-  authTokenKey: 'admin_token',
+  authTokenKey: ADMIN_AUTH_TOKEN_KEY,
   onAuthFailure: () => {
     // Redirect to login on auth failure
     if (window.location.pathname !== '/login') {

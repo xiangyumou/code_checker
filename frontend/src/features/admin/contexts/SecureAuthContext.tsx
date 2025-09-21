@@ -2,6 +2,7 @@ import React, { useState, createContext, useContext, useEffect, useCallback } fr
 import { useNavigate } from 'react-router-dom';
 import { secureAuthService } from '../services/secureAuth';
 import { AdminUser } from '../../../types/index';
+import { ADMIN_AUTH_TOKEN_KEY } from '@/constants/adminAuth';
 
 interface SecureAuthContextType {
   isAuthenticated: boolean;
@@ -23,6 +24,7 @@ export const SecureAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setLoading(true);
     try {
       await secureAuthService.logout();
+      localStorage.removeItem(ADMIN_AUTH_TOKEN_KEY);
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -34,6 +36,13 @@ export const SecureAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const checkAuth = useCallback(async () => {
     setLoading(true);
+    const token = localStorage.getItem(ADMIN_AUTH_TOKEN_KEY);
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await secureAuthService.checkAuth();
       if (result.success && result.user) {
