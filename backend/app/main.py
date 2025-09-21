@@ -130,6 +130,7 @@ async def analysis_worker(queue: asyncio.Queue): # Accept queue as argument
 async def lifespan(app: FastAPI):
     # Code to run on startup
     logger.info("Application startup sequence initiated...")
+    db_logger = None
     # await init_db() # REMOVED: We will create tables directly here
 
     # --- Create Database Tables Directly (Ignoring Alembic) ---
@@ -349,11 +350,16 @@ async def lifespan(app: FastAPI):
     await stop_app_handler()
     
     # --- Log application shutdown to database ---
-    try:
-        async with AsyncSessionLocal() as db:
-            await db_logger.info(db, "Application shutdown completed")
-    except Exception as e:
-        logger.error(f"Failed to log shutdown to database: {e}")
+    if db_logger is None:
+        logger.warning(
+            "Skipping shutdown logging because the database logger failed to initialize during startup."
+        )
+    else:
+        try:
+            async with AsyncSessionLocal() as db:
+                await db_logger.info(db, "Application shutdown completed")
+        except Exception as e:
+            logger.error(f"Failed to log shutdown to database: {e}")
 
     # Add other cleanup code here if needed
     logger.info("Application shutdown sequence finished.")
