@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Tabs, Image, Spin, message } from 'antd';
+import { Modal, Tabs, Image, Spin, message, Alert } from 'antd';
 import { Button } from '../ui/Button';
-import { 
+import {
   FileTextOutlined,
   CodeOutlined,
   DiffOutlined,
@@ -11,7 +11,7 @@ import {
   CopyOutlined,
   CheckOutlined,
 } from '@ant-design/icons';
-import { getRequestDetail, regenerateAnalysis } from '@/api/requests';
+import { getAnalysisRequestDetails, regenerateAnalysis } from '@/features/user/api/requests';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -21,19 +21,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { cn } from '@/shared/lib/utils';
 import type { Request } from './RequestList';
-
-interface RequestDetail extends Request {
-  user_input?: string;
-  uploaded_images?: string[];
-  gpt_response?: {
-    problem_description?: string;
-    io_format?: string;
-    io_samples?: Array<{ input: string; output: string }>;
-    source_code?: string;
-    modified_code?: string;
-    modification_analysis?: string;
-  };
-}
+import type { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem } from '@shared/types';
+import { useRequestParsing } from '@/components/shared/RequestDetailDrawer/hooks/useRequestParsing';
 
 interface RequestDetailModalProps {
   request: Request;
@@ -49,25 +38,35 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
   onRegenerate,
 }) => {
   const { t } = useTranslation();
-  const [detail, setDetail] = useState<RequestDetail | null>(null);
+  const [detail, setDetail] = useState<AnalysisRequest | null>(null);
   const [loading, setLoading] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [activeTab, setActiveTab] = useState('submission');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  const { parsedContent, parsingError } = useRequestParsing(open, detail);
+
   useEffect(() => {
     if (open && request) {
       fetchDetail();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, request]);
+
+  useEffect(() => {
+    if (open) {
+      setActiveTab('submission');
+    }
+  }, [open, request.id]);
 
   const fetchDetail = async () => {
     setLoading(true);
     try {
-      const data = await getRequestDetail(request.id);
+      const data = await getAnalysisRequestDetails(request.id);
       setDetail(data);
-    } catch (error: any) {
-      message.error(error.message || t('common.errors.fetchFailed'));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : undefined;
+      message.error(errorMessage || t('common.errors.fetchFailed'));
     } finally {
       setLoading(false);
     }
@@ -80,8 +79,9 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
       message.success(t('user.messages.regenerateSuccess'));
       onRegenerate();
       fetchDetail();
-    } catch (error: any) {
-      message.error(error.message || t('user.messages.regenerateError'));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : undefined;
+      message.error(errorMessage || t('user.messages.regenerateError'));
     } finally {
       setRegenerating(false);
     }
@@ -123,6 +123,76 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     </div>
   );
 
+  const normalizeImageSrc = (base64String: string) => {
+    if (base64String.startsWith('data:')) {
+      return base64String;
+    }
+    return `data:image/png;base64,${base64String}`;
+  };
+
+  const buildProblemMarkdown = (problem: OrganizedProblem) => {
+    const sections: string[] = [];
+
+    sections.push(`# ${t('user.detail.problemDescription')}`);
+    sections.push(problem.description || t('common.notAvailable'));
+
+    sections.push(`## ${t('user.detail.ioFormat')}`);
+    sections.push(problem.input_format || t('common.notAvailable'));
+    sections.push(problem.output_format || t('common.notAvailable'));
+
+    const hasSamples = problem.input_sample || problem.output_sample;
+    sections.push(`## ${t('user.detail.ioSamples')}`);
+
+    if (hasSamples) {
+      sections.push(
+        `### ${t('user.detail.sample')} 1\n\n**${t('user.detail.input')}:**\n\`\`\`\n${
+          problem.input_sample || t('common.notAvailable')
+        }\n\`\`\`\n\n**${t('user.detail.output')}:**\n\`\`\`\n${
+          problem.output_sample || t('common.notAvailable')
+        }\n\`\`\``
+      );
+    } else {
+      sections.push(t('common.notAvailable'));
+    }
+
+    return sections.filter(Boolean).join('\n\n');
+  };
+
+  const renderModificationAnalysis = (analysis: ModificationAnalysisItem[]) => (
+    <div className="space-y-6">
+      {analysis.map((item, index) => (
+        <div
+          key={index}
+          className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 space-y-3"
+        >
+          {item.explanation && (
+            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              {item.explanation}
+            </p>
+          )}
+          {item.original_snippet && (
+            <div>
+              <h4 className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                {t('user.detail.originalCode')}
+              </h4>
+              {renderCodeBlock(item.original_snippet, 'typescript', `original-${index}`)}
+            </div>
+          )}
+          {item.modified_snippet && (
+            <div>
+              <h4 className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                {t('user.detail.modifiedCode')}
+              </h4>
+              {renderCodeBlock(item.modified_snippet, 'typescript', `modified-${index}`)}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
+  const isCompleted = detail?.status?.toLowerCase?.() === 'completed';
+
   const tabItems = [
     {
       key: 'submission',
@@ -138,28 +208,28 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
         </div>
       ) : (
         <div className="space-y-4">
-          {detail?.user_input && (
+          {detail?.user_prompt && (
             <div>
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t('user.detail.userInput')}
               </h3>
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <pre className="whitespace-pre-wrap text-sm">{detail.user_input}</pre>
+                <pre className="whitespace-pre-wrap text-sm">{detail.user_prompt}</pre>
               </div>
             </div>
           )}
-          
-          {detail?.uploaded_images && detail.uploaded_images.length > 0 && (
+
+          {detail?.images_base64 && detail.images_base64.length > 0 && (
             <div>
               <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 {t('user.detail.uploadedImages')}
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <Image.PreviewGroup>
-                  {detail.uploaded_images.map((img, index) => (
+                  {detail.images_base64.map((img, index) => (
                     <Image
                       key={index}
-                      src={img}
+                      src={normalizeImageSrc(img)}
                       className="rounded-lg object-cover"
                       width={200}
                       height={150}
@@ -174,130 +244,152 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     },
   ];
 
-  if (detail?.gpt_response && request.status === 'completed') {
-    const response = detail.gpt_response;
-    
-    if (response.problem_description) {
+  if (isCompleted) {
+    if (parsingError) {
       tabItems.push({
-        key: 'problem',
-        label: (
-          <span className="flex items-center gap-2">
-            <BulbOutlined />
-            {t('user.detail.problemDetails')}
-          </span>
-        ),
-        children: (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex, rehypeMermaid]}
-            >
-              {`# ${t('user.detail.problemDescription')}\n\n${response.problem_description}\n\n## ${t('user.detail.ioFormat')}\n\n${response.io_format || t('common.notAvailable')}\n\n## ${t('user.detail.ioSamples')}\n\n${
-                response.io_samples?.map((sample, i) => 
-                  `### ${t('user.detail.sample')} ${i + 1}\n\n**${t('user.detail.input')}:**\n\`\`\`\n${sample.input}\n\`\`\`\n\n**${t('user.detail.output')}:**\n\`\`\`\n${sample.output}\n\`\`\`\n`
-                ).join('\n') || t('common.notAvailable')
-              }`}
-            </ReactMarkdown>
-          </div>
-        ),
-      });
-    }
-
-    if (response.source_code) {
-      tabItems.push({
-        key: 'source',
-        label: (
-          <span className="flex items-center gap-2">
-            <CodeOutlined />
-            {t('user.detail.sourceCode')}
-          </span>
-        ),
-        children: renderCodeBlock(response.source_code, 'cpp', 'source'),
-      });
-    }
-
-    if (response.modified_code && response.source_code) {
-      tabItems.push({
-        key: 'diff',
+        key: 'analysis-error',
         label: (
           <span className="flex items-center gap-2">
             <DiffOutlined />
-            {t('user.detail.codeDiff')}
-          </span>
-        ),
-        children: (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('user.detail.original')}
-                </h3>
-                {renderCodeBlock(response.source_code, 'cpp', 'original')}
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  {t('user.detail.modified')}
-                </h3>
-                {renderCodeBlock(response.modified_code, 'cpp', 'modified')}
-              </div>
-            </div>
-          </div>
-        ),
-      });
-    }
-
-    if (response.modification_analysis) {
-      tabItems.push({
-        key: 'analysis',
-        label: (
-          <span className="flex items-center gap-2">
-            <BulbOutlined />
             {t('user.detail.modificationAnalysis')}
           </span>
         ),
         children: (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex, rehypeMermaid]}
-            >
-              {response.modification_analysis}
-            </ReactMarkdown>
-          </div>
+          <Alert
+            type="error"
+            message={parsingError}
+            showIcon
+          />
         ),
       });
+    } else if (parsedContent) {
+      if (parsedContent.organized_problem) {
+        const problemContent =
+          typeof parsedContent.organized_problem === 'string'
+            ? parsedContent.organized_problem
+            : buildProblemMarkdown(parsedContent.organized_problem as OrganizedProblem);
+
+        tabItems.push({
+          key: 'problem',
+          label: (
+            <span className="flex items-center gap-2">
+              <BulbOutlined />
+              {t('user.detail.problemDetails')}
+            </span>
+          ),
+          children: (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex, rehypeMermaid]}
+              >
+                {problemContent}
+              </ReactMarkdown>
+            </div>
+          ),
+        });
+      }
+
+      if (parsedContent.modification_analysis && parsedContent.modification_analysis.length > 0) {
+        tabItems.push({
+          key: 'analysis',
+          label: (
+            <span className="flex items-center gap-2">
+              <DiffOutlined />
+              {t('user.detail.modificationAnalysis')}
+            </span>
+          ),
+          children: renderModificationAnalysis(parsedContent.modification_analysis as ModificationAnalysisItem[]),
+        });
+      }
+
+      if (parsedContent.original_code) {
+        tabItems.push({
+          key: 'original-code',
+          label: (
+            <span className="flex items-center gap-2">
+              <CodeOutlined />
+              {t('user.detail.originalCode')}
+            </span>
+          ),
+          children: renderCodeBlock(
+            parsedContent.original_code as string,
+            'typescript',
+            'original-code'
+          ),
+        });
+      }
+
+      if (parsedContent.modified_code) {
+        tabItems.push({
+          key: 'modified-code',
+          label: (
+            <span className="flex items-center gap-2">
+              <CodeOutlined />
+              {t('user.detail.modifiedCode')}
+            </span>
+          ),
+          children: renderCodeBlock(
+            parsedContent.modified_code as string,
+            'typescript',
+            'modified-code'
+          ),
+        });
+      }
     }
   }
 
   return (
     <Modal
-      open={open}
-      onCancel={onClose}
       title={
-        <div className="flex items-center justify-between pr-8">
-          <span>{t('user.detail.title', { id: request.id })}</span>
-          {request.status === 'completed' && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold mb-1">
+              {t('user.detail.title', { id: request.id })}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {t('user.detail.status')}:{' '}
+              <span className={cn(
+                'font-medium',
+                request.status === 'completed'
+                  ? 'text-green-600 dark:text-green-400'
+                  : request.status === 'failed'
+                    ? 'text-red-600 dark:text-red-400'
+                    : 'text-blue-600 dark:text-blue-400'
+              )}>
+                {t(`user.requests.status.${request.status}`)}
+              </span>
+            </p>
+          </div>
+          <div className="flex gap-2">
             <Button
-              variant="secondary"
-              size="sm"
+              variant="outline"
+              onClick={fetchDetail}
+              disabled={loading || regenerating}
+            >
+              {t('common.refresh')}
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleRegenerate}
               loading={regenerating}
               icon={<ReloadOutlined />}
             >
               {t('user.detail.regenerate')}
             </Button>
-          )}
+          </div>
         </div>
       }
-      width={1000}
+      open={open}
+      onCancel={onClose}
       footer={null}
-      className="top-8"
+      width={900}
+      className="max-w-5xl"
     >
       <Tabs
         activeKey={activeTab}
         onChange={setActiveTab}
         items={tabItems}
-        className="mt-4"
       />
     </Modal>
   );

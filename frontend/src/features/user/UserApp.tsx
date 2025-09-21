@@ -7,15 +7,16 @@ import { SubmissionForm } from '@/components/user/SubmissionForm';
 import { RequestList, type Request } from '@/components/user/RequestList';
 import { useRequests } from '@/hooks/useRequests';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { createRequest } from '@/api/requests';
+import { createAnalysisRequest } from '@/features/user/api/requests';
 import { RequestDetailModal } from '@/components/user/RequestDetailModal';
 import { motion } from 'framer-motion';
+import type { SubmissionFormData } from '@shared/types';
 
 export const UserApp: React.FC = () => {
   const { t } = useTranslation();
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   const { requests, loading, refetch } = useRequests();
   const { isConnected, lastMessage } = useWebSocket();
 
@@ -29,14 +30,20 @@ export const UserApp: React.FC = () => {
     }
   }, [lastMessage, refetch]);
 
-  const handleSubmit = useCallback(async (data: { text: string; images: string[] }) => {
+  const handleSubmit = useCallback(async (data: { text: string; images: File[] }) => {
     setSubmitting(true);
     try {
-      await createRequest(data);
+      const payload: SubmissionFormData = {
+        user_prompt: data.text,
+        images: data.images.length > 0 ? data.images : null,
+      };
+
+      await createAnalysisRequest(payload);
       message.success(t('user.messages.submitSuccess'));
       refetch();
-    } catch (error: any) {
-      message.error(error.message || t('user.messages.submitError'));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : undefined;
+      message.error(errorMessage || t('user.messages.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -45,8 +52,8 @@ export const UserApp: React.FC = () => {
   return (
     <AppShell
       header={
-        <Header 
-          showWebSocketStatus 
+        <Header
+          showWebSocketStatus
           isConnected={isConnected}
         />
       }
@@ -65,10 +72,10 @@ export const UserApp: React.FC = () => {
               {t('user.welcome.subtitle')}
             </p>
           </div>
-          
-          <SubmissionForm 
-            onSubmit={handleSubmit} 
-            loading={submitting} 
+
+          <SubmissionForm
+            onSubmit={handleSubmit}
+            loading={submitting}
           />
         </motion.div>
 

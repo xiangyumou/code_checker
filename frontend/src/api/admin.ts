@@ -1,8 +1,7 @@
-import { api } from './index';
+import { adminApiClient } from './centralized';
 
 export const getDashboardStats = async () => {
-  const response = await api.get('/api/admin/dashboard/stats');
-  return response.data;
+  return adminApiClient.get('/admin/dashboard/stats');
 };
 
 export const getAdminRequests = async (params?: {
@@ -10,18 +9,15 @@ export const getAdminRequests = async (params?: {
   page_size?: number;
   status?: string;
 }) => {
-  const response = await api.get('/api/admin/requests', { params });
-  return response.data;
+  return adminApiClient.get('/admin/requests', { params });
 };
 
 export const deleteRequest = async (id: number) => {
-  const response = await api.delete(`/api/admin/requests/${id}`);
-  return response.data;
+  return adminApiClient.delete(`/admin/requests/${id}`);
 };
 
 export const retryRequest = async (id: number) => {
-  const response = await api.post(`/api/admin/requests/${id}/retry`);
-  return response.data;
+  return adminApiClient.post(`/admin/requests/${id}/retry`);
 };
 
 export const getLogs = async (params?: {
@@ -31,23 +27,19 @@ export const getLogs = async (params?: {
   start_date?: string;
   end_date?: string;
 }) => {
-  const response = await api.get('/api/admin/logs', { params });
-  return response.data;
+  return adminApiClient.get('/admin/logs', { params });
 };
 
 export const clearLogs = async () => {
-  const response = await api.delete('/api/admin/logs');
-  return response.data;
+  return adminApiClient.delete('/admin/logs');
 };
 
 export const getSettings = async () => {
-  const response = await api.get('/api/admin/settings');
-  return response.data;
+  return adminApiClient.get('/admin/settings');
 };
 
-export const updateSettings = async (settings: any) => {
-  const response = await api.put('/api/admin/settings', settings);
-  return response.data;
+export const updateSettings = async (settings: Record<string, unknown>) => {
+  return adminApiClient.put('/admin/settings', settings);
 };
 
 export const updateProfile = async (data: {
@@ -55,6 +47,5 @@ export const updateProfile = async (data: {
   current_password?: string;
   new_password?: string;
 }) => {
-  const response = await api.put('/api/admin/profile', data);
-  return response.data;
+  return adminApiClient.put('/admin/profile', data);
 };

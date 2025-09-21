@@ -51,6 +51,7 @@ class SecureAuthService {
 
       if (response.ok && data.access_token) {
         localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('admin_token', data.access_token);
         return { success: true };
       } else {
         return { success: false, error: data.detail || 'Login failed' };
@@ -65,6 +66,7 @@ class SecureAuthService {
    */
   async logout(): Promise<void> {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('admin_token');
     try {
       // The backend doesn't have a formal logout endpoint, but clearing the token locally is sufficient.
       await this.authenticatedFetch(`${this.baseUrl}/logout`, {
@@ -99,7 +101,7 @@ class SecureAuthService {
    * Make authenticated API requests
    */
   async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('admin_token') || localStorage.getItem('access_token');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...options.headers as Record<string, string>,
@@ -154,6 +156,7 @@ class SecureAuthService {
 
         if (data.access_token) {
           localStorage.setItem('access_token', data.access_token);
+          localStorage.setItem('admin_token', data.access_token);
         }
 
         return {
