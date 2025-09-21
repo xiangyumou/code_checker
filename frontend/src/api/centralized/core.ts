@@ -5,6 +5,7 @@
 
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { message } from 'antd';
+import { ADMIN_AUTH_TOKEN_KEY } from '@/constants/adminAuth';
 
 interface ApiClientConfig {
   baseURL?: string;
@@ -27,7 +28,7 @@ export class CentralizedApiClient {
       baseURL: config.baseURL || '/api/v1',
       timeout: config.timeout || 10000,
       withAuth: config.withAuth || false,
-      authTokenKey: config.authTokenKey || 'admin_token',
+      authTokenKey: config.authTokenKey || ADMIN_AUTH_TOKEN_KEY,
       onAuthFailure: config.onAuthFailure || (() => {}),
     };
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getMyProfile } from '../api/auth'; // Adjust path if needed
 import { updateAuthToken } from '@/api/centralized'; // Import token update function
 import { AdminUser } from '../../../types/index'; // Import from shared types
+import { ADMIN_AUTH_TOKEN_KEY } from '@/constants/adminAuth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -15,13 +16,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('admin_token'));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(ADMIN_AUTH_TOKEN_KEY));
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true); // Start loading initially
   const navigate = useNavigate();
 
   const logout = useCallback(() => {
-    localStorage.removeItem('admin_token');
+    localStorage.removeItem(ADMIN_AUTH_TOKEN_KEY);
     setToken(null);
     setUser(null);
     // Navigate to login page after state updates
@@ -44,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check authentication status and fetch profile on mount or token change
   useEffect(() => {
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('admin_token');
+      const storedToken = localStorage.getItem(ADMIN_AUTH_TOKEN_KEY);
       if (storedToken) {
         setToken(storedToken); // Ensure token state is synced
         await fetchUserProfile(storedToken);
@@ -58,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = (newToken: string) => {
     setLoading(true); // Set loading while logging in and fetching profile
-    localStorage.setItem('admin_token', newToken);
+    localStorage.setItem(ADMIN_AUTH_TOKEN_KEY, newToken);
     setToken(newToken);
     // Update the API client with the new token
     updateAuthToken(newToken);
