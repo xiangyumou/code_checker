@@ -49,11 +49,7 @@ export const ModernRequestManagementPage: React.FC = () => {
   
   const { lastMessage } = useWebSocket();
 
-  useEffect(() => {
-    fetchRequests();
-  }, [pagination.current, pagination.pageSize, statusFilter, lastMessage]);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       const params = {
@@ -69,7 +65,21 @@ export const ModernRequestManagementPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.current, pagination.pageSize, statusFilter, t]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  useEffect(() => {
+    if (!lastMessage?.payload) {
+      return;
+    }
+
+    if (['request_created', 'request_updated', 'request_deleted', 'status_update'].includes(lastMessage.type)) {
+      fetchRequests();
+    }
+  }, [lastMessage, fetchRequests]);
 
   const handleDelete = async (ids: number[]) => {
     Modal.confirm({

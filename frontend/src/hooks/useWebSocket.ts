@@ -1,90 +1,62 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useWebSocket as centralizedWebSocket } from '@/api/centralized';
+import type { CommunicationEvent, CommunicationEventType } from '@shared/types';
 
-interface WebSocketMessage {
-  type: string;
-  data: any;
-}
+const DATA_EVENTS: CommunicationEventType[] = [
+  'request_created',
+  'request_updated',
+  'request_deleted',
+  'status_update',
+];
 
 export const useWebSocket = () => {
-  const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return;
-    }
-
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    try {
-      wsRef.current = new WebSocket(wsUrl);
-
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
-        setIsConnected(true);
-        reconnectAttemptsRef.current = 0;
-      };
-
-      wsRef.current.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          setLastMessage(message);
-        } catch (err) {
-          console.error('Failed to parse WebSocket message:', err);
-        }
-      };
-
-      wsRef.current.onclose = () => {
-        console.log('WebSocket disconnected');
-        setIsConnected(false);
-        scheduleReconnect();
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-    } catch (err) {
-      console.error('Failed to create WebSocket:', err);
-      scheduleReconnect();
-    }
-  }, []);
-
-  const scheduleReconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-    reconnectAttemptsRef.current += 1;
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      console.log(`Attempting to reconnect... (attempt ${reconnectAttemptsRef.current})`);
-      connect();
-    }, delay);
-  }, [connect]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-  }, []);
+  const [isConnected, setIsConnected] = useState(() => centralizedWebSocket.isConnected());
+  const [lastMessage, setLastMessage] = useState<CommunicationEvent | null>(null);
+  const cleanupHandlersRef = useRef<Array<() => void>>([]);
 
   useEffect(() => {
-    connect();
-    return () => {
-      disconnect();
+    const handleConnectionEstablished = (_event: CommunicationEvent) => {
+      setIsConnected(true);
     };
-  }, [connect, disconnect]);
+
+    const handleConnectionLost = (_event: CommunicationEvent) => {
+      setIsConnected(false);
+    };
+
+    const handleError = (_event: CommunicationEvent) => {
+      setIsConnected(false);
+    };
+
+    const handleDataEvent = (event: CommunicationEvent) => {
+      // Ensure payload is propagated following the server message format
+      setLastMessage({
+        ...event,
+        payload: event.payload ?? null,
+      });
+    };
+
+    const handlers: Array<() => void> = [
+      centralizedWebSocket.on('connection_established', handleConnectionEstablished),
+      centralizedWebSocket.on('connection_lost', handleConnectionLost),
+      centralizedWebSocket.on('error', handleError),
+      ...DATA_EVENTS.map(eventType => centralizedWebSocket.on(eventType, handleDataEvent)),
+    ];
+
+    cleanupHandlersRef.current = handlers;
+    centralizedWebSocket.connect();
+
+    return () => {
+      cleanupHandlersRef.current.forEach(unsubscribe => {
+        try {
+          unsubscribe();
+        } catch (error) {
+          console.error('Failed to remove WebSocket handler', error);
+        }
+      });
+      cleanupHandlersRef.current = [];
+      centralizedWebSocket.disconnect();
+    };
+  }, []);
 
   return {
     isConnected,

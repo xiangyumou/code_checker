@@ -20,7 +20,11 @@ export const UserApp: React.FC = () => {
   const { isConnected, lastMessage } = useWebSocket();
 
   useEffect(() => {
-    if (lastMessage) {
+    if (!lastMessage?.payload) {
+      return;
+    }
+
+    if (['request_created', 'request_updated', 'request_deleted', 'status_update'].includes(lastMessage.type)) {
       refetch();
     }
   }, [lastMessage, refetch]);
