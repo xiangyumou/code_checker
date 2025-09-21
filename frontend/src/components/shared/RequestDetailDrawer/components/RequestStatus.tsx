@@ -35,7 +35,7 @@ const getStatusProps = (
     case 'Failed':
       return { color: 'error', icon: <CloseCircleOutlined />, text: t('requestDetails.analysisFailed') };
     case 'Queued':
-      return { color: 'default', icon: <ClockCircleOutlined />, text: t('requestList.pending') };
+      return { color: 'default', icon: <ClockCircleOutlined />, text: t('requestList.queued') };
     default:
       return { color: 'default', icon: <QuestionCircleOutlined />, text: t('requestDetails.unknownStatus') };
   }

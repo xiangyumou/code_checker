@@ -4,17 +4,17 @@ import { message } from 'antd';
 import { AppShell } from '@/components/layout/AppShell';
 import { Header } from '@/components/layout/Header';
 import { SubmissionForm } from '@/components/user/SubmissionForm';
-import { RequestList, type Request } from '@/components/user/RequestList';
+import { RequestList } from '@/components/user/RequestList';
 import { useRequests } from '@/hooks/useRequests';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { createAnalysisRequest } from '@/features/user/api/requests';
 import { RequestDetailModal } from '@/components/user/RequestDetailModal';
 import { motion } from 'framer-motion';
-import type { SubmissionFormData } from '@shared/types';
+import type { SubmissionFormData, RequestSummary } from '@shared/types';
 
 export const UserApp: React.FC = () => {
   const { t } = useTranslation();
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<RequestSummary | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const { requests, loading, refetch } = useRequests();

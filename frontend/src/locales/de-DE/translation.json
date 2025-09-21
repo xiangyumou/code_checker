@@ -41,6 +41,7 @@
     "actions": "Aktionen",
     "viewDetails": "Details anzeigen",
     "pending": "Ausstehend",
+    "queued": "In Warteschlange",
     "processing": "In Bearbeitung",
     "completed": "Abgeschlossen",
     "failed": "Fehlgeschlagen",
@@ -107,6 +108,7 @@
     "copyCodeErrorFailed": "Kopieren des Quellcodes fehlgeschlagen.",
     "copyCode": "Code kopieren",
     "copyCodeTooltip": "Quellcode kopieren",
+    "rawResponse": "Rohe GPT-Antwort",
     "drawerTitleWithId": "Analyseergebnisse - Anfrage #{{id}}",
     "drawerTitle": "Analyseergebnisse",
     "regeneratingButton": "Wird erstellt...",
@@ -237,6 +239,10 @@
   "adminPanel": {
     "title": "Admin-Panel"
   },
+  "admin.requests.status.queued": "In Warteschlange",
+  "admin.requests.status.processing": "In Bearbeitung",
+  "admin.requests.status.completed": "Abgeschlossen",
+  "admin.requests.status.failed": "Fehlgeschlagen",
   "requestManagement": {
     "title": "Anfragenverwaltung",
     "id": "ID",

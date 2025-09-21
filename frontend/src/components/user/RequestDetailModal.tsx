@@ -20,15 +20,15 @@ import rehypeMermaid from 'rehype-mermaid';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { cn } from '@/shared/lib/utils';
-import type { Request } from './RequestList';
-import type { AnalysisRequest, OrganizedProblem, ModificationAnalysisItem } from '@shared/types';
+import type { RequestSummary, RequestStatus, AnalysisRequest, OrganizedProblem, ModificationAnalysisItem } from '@shared/types';
 import { useRequestParsing } from '@/components/shared/RequestDetailDrawer/hooks/useRequestParsing';
 
 interface RequestDetailModalProps {
-  request: Request;
+  request: RequestSummary;
   open: boolean;
   onClose: () => void;
   onRegenerate: () => void;
+  initialData?: AnalysisRequest;
 }
 
 export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
@@ -36,6 +36,7 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
   open,
   onClose,
   onRegenerate,
+  initialData,
 }) => {
   const { t } = useTranslation();
   const [detail, setDetail] = useState<AnalysisRequest | null>(null);
@@ -47,11 +48,18 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
   const { parsedContent, parsingError } = useRequestParsing(open, detail);
 
   useEffect(() => {
-    if (open && request) {
-      fetchDetail();
+    if (!open || !request) {
+      return;
     }
+
+    if (initialData) {
+      setDetail(initialData);
+      return;
+    }
+
+    fetchDetail();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, request]);
+  }, [open, request, initialData]);
 
   useEffect(() => {
     if (open) {
@@ -130,6 +138,27 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     return `data:image/png;base64,${base64String}`;
   };
 
+  const formatRawResponse = (raw: AnalysisRequest['gpt_raw_response']) => {
+    if (!raw) {
+      return '';
+    }
+
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return JSON.stringify(parsed, null, 2);
+      } catch (error) {
+        return raw;
+      }
+    }
+
+    try {
+      return JSON.stringify(raw, null, 2);
+    } catch (error) {
+      return String(raw);
+    }
+  };
+
   const buildProblemMarkdown = (problem: OrganizedProblem) => {
     const sections: string[] = [];
 
@@ -191,7 +220,21 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     </div>
   );
 
-  const isCompleted = detail?.status?.toLowerCase?.() === 'completed';
+  const isCompleted = detail?.status === 'Completed';
+
+  const statusToneMap: Record<RequestStatus, string> = {
+    Queued: 'text-yellow-600 dark:text-yellow-400',
+    Processing: 'text-blue-600 dark:text-blue-400',
+    Completed: 'text-green-600 dark:text-green-400',
+    Failed: 'text-red-600 dark:text-red-400',
+  };
+
+  const statusTranslationKey: Record<RequestStatus, string> = {
+    Queued: 'queued',
+    Processing: 'processing',
+    Completed: 'completed',
+    Failed: 'failed',
+  };
 
   const tabItems = [
     {
@@ -339,6 +382,23 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
     }
   }
 
+  if (detail?.gpt_raw_response) {
+    tabItems.push({
+      key: 'raw-response',
+      label: (
+        <span className="flex items-center gap-2">
+          <CodeOutlined />
+          {t('requestDetails.rawResponse')}
+        </span>
+      ),
+      children: (
+        <pre className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-xs overflow-x-auto whitespace-pre-wrap">
+          {formatRawResponse(detail.gpt_raw_response)}
+        </pre>
+      ),
+    });
+  }
+
   return (
     <Modal
       title={
@@ -351,13 +411,9 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
               {t('user.detail.status')}:{' '}
               <span className={cn(
                 'font-medium',
-                request.status === 'completed'
-                  ? 'text-green-600 dark:text-green-400'
-                  : request.status === 'failed'
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-blue-600 dark:text-blue-400'
+                statusToneMap[request.status] ?? 'text-blue-600 dark:text-blue-400'
               )}>
-                {t(`user.requests.status.${request.status}`)}
+                {t(`requestList.${statusTranslationKey[request.status] ?? 'processing'}`)}
               </span>
             </p>
           </div>

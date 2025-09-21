@@ -22,16 +22,29 @@ import { RequestDetailModal } from '@/components/user/RequestDetailModal';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { cn } from '@/shared/lib/utils';
 import { formatDate } from '@/shared/lib/utils';
+import type { RequestStatus, RequestSummary } from '@/types';
 
-interface AdminRequest {
-  id: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at: string;
-  updated_at: string;
-  filename?: string;
-  error_message?: string;
-  user_input?: string;
-}
+type AdminRequest = RequestSummary & {
+  user_input?: string | null;
+};
+
+const normalizeStatus = (status: RequestStatus | string): RequestStatus => {
+  const normalized = status.toString().toLowerCase();
+
+  switch (normalized) {
+    case 'queued':
+    case 'pending':
+      return 'Queued';
+    case 'processing':
+      return 'Processing';
+    case 'completed':
+      return 'Completed';
+    case 'failed':
+      return 'Failed';
+    default:
+      return 'Queued';
+  }
+};
 
 export const ModernRequestManagementPage: React.FC = () => {
   const { t } = useTranslation();
@@ -39,7 +52,7 @@ export const ModernRequestManagementPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<AdminRequest | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | RequestStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [pagination, setPagination] = useState({
     current: 1,
@@ -58,7 +71,14 @@ export const ModernRequestManagementPage: React.FC = () => {
         ...(statusFilter !== 'all' && { status: statusFilter }),
       };
       const response = await getAdminRequests(params);
-      setRequests(response.items || []);
+      const normalizedItems: AdminRequest[] = (response.items || []).map((item: any) => ({
+        ...item,
+        status: normalizeStatus(item.status),
+        error_message: item.error_message ?? null,
+        filename: item.filename ?? null,
+        user_input: item.user_input ?? null,
+      }));
+      setRequests(normalizedItems);
       setPagination(prev => ({ ...prev, total: response.total || 0 }));
     } catch (error: any) {
       message.error(error.message || t('admin.requests.fetchError'));
@@ -112,27 +132,38 @@ export const ModernRequestManagementPage: React.FC = () => {
     }
   };
 
-  const statusConfig = {
-    pending: {
+  const statusConfig: Record<RequestStatus, {
+    icon: React.ReactNode;
+    color: string;
+    bgColor: string;
+  }> = {
+    Queued: {
       icon: <ClockCircleOutlined />,
       color: 'text-yellow-600 dark:text-yellow-400',
       bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
     },
-    processing: {
+    Processing: {
       icon: <SyncOutlined className="animate-spin" />,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     },
-    completed: {
+    Completed: {
       icon: <CheckCircleOutlined />,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
     },
-    failed: {
+    Failed: {
       icon: <CloseCircleOutlined />,
       color: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-50 dark:bg-red-900/20',
     },
+  };
+
+  const statusTranslationKey: Record<RequestStatus, string> = {
+    Queued: 'queued',
+    Processing: 'processing',
+    Completed: 'completed',
+    Failed: 'failed',
   };
 
   const columns = [
@@ -148,8 +179,8 @@ export const ModernRequestManagementPage: React.FC = () => {
       title: t('admin.requests.status'),
       dataIndex: 'status',
       width: 120,
-      render: (status: string) => {
-        const config = statusConfig[status as keyof typeof statusConfig];
+      render: (status: RequestStatus) => {
+        const config = statusConfig[status] ?? statusConfig.Queued;
         return (
           <span className={cn(
             "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
@@ -157,7 +188,7 @@ export const ModernRequestManagementPage: React.FC = () => {
             config.color
           )}>
             {config.icon}
-            {t(`admin.requests.status.${status}`)}
+            {t(`admin.requests.status.${statusTranslationKey[status]}`)}
           </span>
         );
       },
@@ -201,7 +232,7 @@ export const ModernRequestManagementPage: React.FC = () => {
       align: 'center' as const,
       render: (_: any, record: AdminRequest) => (
         <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-          {record.status === 'failed' && (
+          {record.status === 'Failed' && (
             <Button
               variant="ghost"
               size="sm"
@@ -231,8 +262,8 @@ export const ModernRequestManagementPage: React.FC = () => {
     );
   });
 
-  const selectedFailedRequests = selectedRows.filter(id => 
-    requests.find(r => r.id === id && r.status === 'failed')
+  const selectedFailedRequests = selectedRows.filter(id =>
+    requests.find(r => r.id === id && r.status === 'Failed')
   );
 
   return (
@@ -266,14 +297,16 @@ export const ModernRequestManagementPage: React.FC = () => {
               <Dropdown
                 items={[
                   { key: 'all', label: t('admin.requests.allStatus'), onClick: () => setStatusFilter('all') },
-                  { key: 'pending', label: t('admin.requests.status.pending'), onClick: () => setStatusFilter('pending') },
-                  { key: 'processing', label: t('admin.requests.status.processing'), onClick: () => setStatusFilter('processing') },
-                  { key: 'completed', label: t('admin.requests.status.completed'), onClick: () => setStatusFilter('completed') },
-                  { key: 'failed', label: t('admin.requests.status.failed'), onClick: () => setStatusFilter('failed') },
+                  { key: 'queued', label: t('admin.requests.status.queued'), onClick: () => setStatusFilter('Queued') },
+                  { key: 'processing', label: t('admin.requests.status.processing'), onClick: () => setStatusFilter('Processing') },
+                  { key: 'completed', label: t('admin.requests.status.completed'), onClick: () => setStatusFilter('Completed') },
+                  { key: 'failed', label: t('admin.requests.status.failed'), onClick: () => setStatusFilter('Failed') },
                 ]}
               >
                 <Button variant="secondary" icon={<FilterOutlined />}>
-                  {statusFilter === 'all' ? t('admin.requests.allStatus') : t(`admin.requests.status.${statusFilter}`)}
+                  {statusFilter === 'all'
+                    ? t('admin.requests.allStatus')
+                    : t(`admin.requests.status.${statusTranslationKey[statusFilter]}`)}
                 </Button>
               </Dropdown>
             </div>

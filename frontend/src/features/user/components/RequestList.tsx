@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'; // Import useTranslation
 import { List, Tag, Spin, Empty, Button, Skeleton, Tooltip, Typography, Space, theme } from 'antd'; // Added theme
 // Added specific icons for status
 import { SyncOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, QuestionCircleOutlined, ReloadOutlined, FileTextOutlined } from '@ant-design/icons'; // Added FileTextOutlined
-import { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/index'; // Import RequestSummary
+import { RequestStatus, RequestSummary } from '../../../types/index'; // Import RequestSummary
 import dayjs from 'dayjs'; // Import dayjs for date formatting
 
 const { Text, Title } = Typography; // Destructure Title as well
@@ -25,7 +25,7 @@ const getStatusProps = (status: RequestStatus, t: (key: string) => string): { co
     case 'Completed': return { color: 'success', icon: <CheckCircleOutlined />, text: t('requestList.completed') };
     case 'Processing': return { color: 'processing', icon: <SyncOutlined spin />, text: t('requestList.processing') };
     case 'Failed': return { color: 'error', icon: <CloseCircleOutlined />, text: t('requestList.failed') };
-    case 'Queued': return { color: 'default', icon: <ClockCircleOutlined />, text: t('requestList.pending') }; // Assuming 'Queued' maps to 'pending' key
+    case 'Queued': return { color: 'default', icon: <ClockCircleOutlined />, text: t('requestList.queued') };
     default: return { color: 'default', icon: <QuestionCircleOutlined />, text: status }; // Fallback for unknown status
   }
 };
