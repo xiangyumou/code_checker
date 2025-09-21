@@ -1,7 +1,16 @@
 from datetime import datetime
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum as SQLEnum, Index
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    DateTime,
+    Enum as SQLEnum,
+    Index,
+    JSON,
+)
 from sqlalchemy.sql import func
 
 from app.db.base_class import Base
@@ -22,6 +31,7 @@ class Log(Base):
     level = Column(SQLEnum(LogLevel), nullable=False, index=True)
     message = Column(Text, nullable=False)
     source = Column(String(255), nullable=True, index=True)
+    context = Column(JSON, nullable=True)
 
     __table_args__ = (
         Index("idx_logs_timestamp_desc", timestamp.desc()),
