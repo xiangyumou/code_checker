@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 # Import core settings for initial semaphore setup
 from app.core.config import settings as core_settings
+from app.core.logging import get_db_logger
 from app.models.request import Request, RequestStatus
 from app.db.session import AsyncSessionLocal
 from app import crud, schemas # Import schemas
@@ -23,6 +24,7 @@ from app.crud.crud_setting import crud_setting # To fetch settings
 from app.websockets.connection_manager import manager as ws_manager # Correct import path
 
 logger = logging.getLogger("app." + __name__)
+db_logger = get_db_logger("services.openai")
 
 # --- Analysis Task Concurrency Control ---
 # Semaphore to limit concurrent analysis tasks. Initialized during app startup.
