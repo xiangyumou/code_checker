@@ -41,6 +41,7 @@
     "actions": "操作",
     "viewDetails": "查看详情",
     "pending": "待处理",
+    "queued": "排队中",
     "processing": "处理中",
     "completed": "已完成",
     "failed": "失败",
@@ -107,6 +108,7 @@
     "copyCodeErrorFailed": "复制源代码失败",
     "copyCode": "复制代码",
     "copyCodeTooltip": "复制代码",
+    "rawResponse": "GPT 原始响应",
     "drawerTitleWithId": "分析结果 - 请求 #{{id}}",
     "drawerTitle": "分析结果",
     "regeneratingButton": "创建中...",
@@ -247,6 +249,10 @@
   "adminPanel": {
     "title": "管理面板"
   },
+  "admin.requests.status.queued": "排队中",
+  "admin.requests.status.processing": "处理中",
+  "admin.requests.status.completed": "已完成",
+  "admin.requests.status.failed": "失败",
   "requestManagement": {
     "title": "请求管理",
     "id": "ID",

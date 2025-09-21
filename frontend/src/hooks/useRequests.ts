@@ -1,26 +1,33 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAnalysisRequests } from '@/features/user/api/requests';
-import type { RequestSummary } from '@/types/index';
-import type { Request } from '@/components/user/RequestList';
+import type { RequestSummary, RequestStatus } from '@shared/types';
 
-const statusMap: Record<string, Request['status']> = {
-  queued: 'pending',
-  pending: 'pending',
-  processing: 'processing',
-  completed: 'completed',
-  failed: 'failed',
+const normalizeStatus = (status: RequestStatus | string): RequestStatus => {
+  const normalized = status.toString().toLowerCase();
+
+  switch (normalized) {
+    case 'queued':
+    case 'pending':
+      return 'Queued';
+    case 'processing':
+      return 'Processing';
+    case 'completed':
+      return 'Completed';
+    case 'failed':
+      return 'Failed';
+    default:
+      return 'Queued';
+  }
 };
 
-const transformToRequest = (summary: RequestSummary): Request => ({
-  id: summary.id,
-  status: statusMap[summary.status.toLowerCase()] ?? 'pending',
-  created_at: summary.created_at,
-  updated_at: summary.updated_at,
-  error_message: summary.error_message ?? undefined,
+const transformToRequestSummary = (summary: RequestSummary): RequestSummary => ({
+  ...summary,
+  status: normalizeStatus(summary.status),
+  error_message: summary.error_message ?? null,
 });
 
 export const useRequests = () => {
-  const [requests, setRequests] = useState<Request[]>([]);
+  const [requests, setRequests] = useState<RequestSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +36,7 @@ export const useRequests = () => {
     setError(null);
     try {
       const data = await getAnalysisRequests();
-      setRequests(data.map(transformToRequest));
+      setRequests(data.map(transformToRequestSummary));
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch requests';
       setError(errorMessage);

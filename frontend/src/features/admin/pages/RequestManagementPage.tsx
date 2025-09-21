@@ -20,7 +20,7 @@ import { AnalysisRequest, RequestStatus, RequestSummary } from '../../../types/i
 // Removed Option = Select;
 
 // Define possible statuses for filtering
-const STATUS_OPTIONS: RequestStatus[] = ['Pending', 'Processing', 'Completed', 'Failed'];
+const STATUS_OPTIONS: RequestStatus[] = ['Queued', 'Processing', 'Completed', 'Failed'];
 
 // Define props interface
 interface RequestManagementPageProps {

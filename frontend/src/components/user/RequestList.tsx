@@ -15,52 +15,62 @@ import { cn } from '@/shared/lib/utils';
 import { formatDate } from '@/shared/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Empty } from 'antd';
+import type { RequestSummary, RequestStatus } from '@shared/types';
 
-export interface Request {
-  id: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  created_at: string;
-  updated_at: string;
-  error_message?: string;
-}
+type StatusKey = 'queued' | 'pending' | 'processing' | 'completed' | 'failed';
 
 interface RequestListProps {
-  requests: Request[];
+  requests: RequestSummary[];
   loading: boolean;
   onRefresh: () => void;
-  onRequestClick: (request: Request) => void;
+  onRequestClick: (request: RequestSummary) => void;
 }
 
-const statusConfig = {
-  pending: {
+const statusConfig: Record<RequestStatus, {
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+  labelKey: StatusKey;
+}> = {
+  Queued: {
     icon: <ClockCircleOutlined />,
     color: 'text-yellow-600 dark:text-yellow-400',
     bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
     borderColor: 'border-yellow-200 dark:border-yellow-800',
-    label: 'Pending',
+    labelKey: 'queued',
   },
-  processing: {
+  Processing: {
     icon: <LoadingOutlined className="animate-spin" />,
     color: 'text-blue-600 dark:text-blue-400',
     bgColor: 'bg-blue-50 dark:bg-blue-900/20',
     borderColor: 'border-blue-200 dark:border-blue-800',
-    label: 'Processing',
+    labelKey: 'processing',
   },
-  completed: {
+  Completed: {
     icon: <CheckCircleOutlined />,
     color: 'text-green-600 dark:text-green-400',
     bgColor: 'bg-green-50 dark:bg-green-900/20',
     borderColor: 'border-green-200 dark:border-green-800',
-    label: 'Completed',
+    labelKey: 'completed',
   },
-  failed: {
+  Failed: {
     icon: <CloseCircleOutlined />,
     color: 'text-red-600 dark:text-red-400',
     bgColor: 'bg-red-50 dark:bg-red-900/20',
     borderColor: 'border-red-200 dark:border-red-800',
-    label: 'Failed',
+    labelKey: 'failed',
   },
 };
+
+const getStatusConfig = (status: RequestStatus) =>
+  statusConfig[status] ?? {
+    icon: <ClockCircleOutlined />,
+    color: 'text-yellow-600 dark:text-yellow-400',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+    borderColor: 'border-yellow-200 dark:border-yellow-800',
+    labelKey: 'pending',
+  };
 
 export const RequestList: React.FC<RequestListProps> = ({
   requests,
@@ -106,7 +116,9 @@ export const RequestList: React.FC<RequestListProps> = ({
         <AnimatePresence mode="popLayout">
           <div className="grid gap-3">
             {requests.map((request, index) => {
-              const config = statusConfig[request.status];
+              const config = getStatusConfig(request.status);
+              const statusLabelKey = config.labelKey;
+              const statusLabel = t(`requestList.${statusLabelKey}`);
               return (
                 <motion.div
                   key={request.id}
@@ -147,7 +159,7 @@ export const RequestList: React.FC<RequestListProps> = ({
                             config.bgColor,
                             config.color
                           )}>
-                            {t(`user.requests.status.${request.status}`)}
+                            {statusLabel}
                           </span>
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
