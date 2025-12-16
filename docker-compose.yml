@@ -18,13 +18,14 @@ services:
       PYTHONUNBUFFERED: 1
       PYTHONDONTWRITEBYTECODE: 1
       # --- Security Configuration ---
-      SECRET_KEY: f258fe79dccae997f0fd78f9a9e45e79bb46a56fecdd78d27dc2a45ee37a45ac
-      # --- PostgreSQL Connection Details (Hardcoded) ---
-      # !!! 请将下面的占位符替换为你的实际数据库凭证 !!!
-      POSTGRES_SERVER: db # Service name of the PostgreSQL container
-      POSTGRES_USER: ZvOs9djfj2qW416MvS6Sa
-      POSTGRES_PASSWORD: B1hYC16XRLY56XPShx6w6G9gHemXewriF5dZoQo2jMI3SVSm2xEmXlcjo5Lo6rUI
-      POSTGRES_DB: BfK2xL8Aex5pfmw4Qshpb
+      # Load from .env file
+      SECRET_KEY: ${SECRET_KEY}
+      # --- PostgreSQL Connection Details ---
+      # Load from .env file - see .env.example for template
+      POSTGRES_SERVER: ${POSTGRES_SERVER:-db} # Service name of the PostgreSQL container
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       # -------------------------------------------------
     # REMOVED command here to allow Dockerfile CMD (which includes alembic upgrade) to run
 
@@ -52,17 +53,17 @@ services:
     image: postgres:15 # Use a specific version
     container_name: code_checker_postgres_db
     environment:
-      # !!! 确保这些值与 backend service 中的环境变量一致 !!!
-      POSTGRES_USER: ZvOs9djfj2qW416MvS6Sa
-      POSTGRES_PASSWORD: B1hYC16XRLY56XPShx6w6G9gHemXewriF5dZoQo2jMI3SVSm2xEmXlcjo5Lo6rUI
-      POSTGRES_DB: BfK2xL8Aex5pfmw4Qshpb
+      # Load from .env file - must match backend service values
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data # Use named volume for persistence
     # ports: # <-- 移除端口映射
     #   - "5432:5432"
     healthcheck:
-      # Use the actual values defined in environment above
-      test: ["CMD-SHELL", "pg_isready -U ZvOs9djfj2qW416MvS6Sa -d BfK2xL8Aex5pfmw4Qshpb"]
+      # Use environment variables in healthcheck
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
