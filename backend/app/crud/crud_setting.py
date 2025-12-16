@@ -33,7 +33,20 @@ class CRUDSetting(CRUDBase[Setting, SettingCreate, SettingUpdate]):
             # Attempt to parse if it looks like JSON (starts with { or [)
             if isinstance(setting.value, str) and (setting.value.startswith('{') or setting.value.startswith('[')):
                 return json.loads(setting.value)
-            # TODO: Add handling for boolean strings 'true'/'false' or numbers if needed
+            # Handle boolean strings 'true'/'false'
+            elif isinstance(setting.value, str) and setting.value.lower() in ['true', 'false']:
+                return setting.value.lower() == 'true'
+            # Try to parse as number (int or float)
+            elif isinstance(setting.value, str):
+                try:
+                    # Try int first
+                    if '.' not in setting.value:
+                        return int(setting.value)
+                    # Then try float
+                    return float(setting.value)
+                except ValueError:
+                    # Not a number, return as string
+                    return setting.value
             return setting.value
         except json.JSONDecodeError:
             # Return the raw string if JSON parsing fails
@@ -73,9 +86,18 @@ class CRUDSetting(CRUDBase[Setting, SettingCreate, SettingUpdate]):
             try:
                 if isinstance(setting.value, str) and (setting.value.startswith('{') or setting.value.startswith('[')):
                      settings_dict[setting.key] = json.loads(setting.value)
-                elif isinstance(setting.value, str) and setting.value in ['true', 'false']:
-                     settings_dict[setting.key] = setting.value == 'true'
-                # TODO: Add number parsing if needed
+                elif isinstance(setting.value, str) and setting.value.lower() in ['true', 'false']:
+                     settings_dict[setting.key] = setting.value.lower() == 'true'
+                elif isinstance(setting.value, str):
+                    # Try to parse as number
+                    try:
+                        if '.' not in setting.value:
+                            settings_dict[setting.key] = int(setting.value)
+                        else:
+                            settings_dict[setting.key] = float(setting.value)
+                    except ValueError:
+                        # Not a number, keep as string
+                        settings_dict[setting.key] = setting.value
                 else:
                      settings_dict[setting.key] = setting.value
             except json.JSONDecodeError:

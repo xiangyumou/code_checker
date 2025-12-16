@@ -99,6 +99,51 @@ async def update_settings(
         #     logger.warning(f"Attempt to update sensitive key '{key}' via bulk update ignored.")
         #     continue
 
+        # Determine value for validation (handle SecretStr)
+        value_for_validation = value
+        if key == "openai_api_key" and isinstance(value, SecretStr):
+            value_for_validation = value.get_secret_value()
+
+        # Implement settings validation
+        if key == "log_level":
+            valid_log_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+            if str(value_for_validation).upper() not in valid_log_levels:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid log level. Must be one of: {', '.join(valid_log_levels)}"
+                )
+        elif key == "openai_parallel_requests_per_prompt": # Assuming this maps to "max_parallel_requests" in the instruction
+            try:
+                parallel_val = int(value_for_validation)
+                if not 1 <= parallel_val <= 10:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="openai_parallel_requests_per_prompt must be between 1 and 10"
+                    )
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="openai_parallel_requests_per_prompt must be an integer"
+                )
+        elif key == "openai_total_attempts_per_prompt": # Assuming this maps to "max_total_attempts" in the instruction
+            try:
+                attempts_val = int(value_for_validation)
+                if not 1 <= attempts_val <= 20:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="openai_total_attempts_per_prompt must be between 1 and 20"
+                    )
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="openai_total_attempts_per_prompt must be an integer"
+                )
+        
+        # Note: For openai_api_key, encryption should be implemented here in production
+        # For now, storing as plain text with a warning in logs
+        if key == "openai_api_key":
+            logger.warning("Storing openai_api_key in plain text. Consider implementing encryption.")
+
         # Handle SecretStr for API key before saving
         if key == "openai_api_key" and isinstance(value, SecretStr):
             value_to_save = value.get_secret_value()
@@ -113,6 +158,17 @@ async def update_settings(
             # Log to database (mask sensitive values)
             log_value = "**** MASKED ****" if key in SENSITIVE_KEYS else str(value_to_save)
             await db_logger.info(db, f"Setting '{key}' updated by {current_user.username} to: {log_value}")
+
+            # Broadcast setting update via WebSocket for each updated setting
+            from app.websockets.connection_manager import manager
+            await manager.broadcast(
+                {
+                    "type": "setting_updated",
+                    "setting_key": key,
+                    "message": f"Setting '{key}' has been updated"
+                }
+            )
+
         except Exception as e:
             logger.error(f"Failed to update setting '{key}': {e}")
             # Decide on error handling: continue or raise exception?
